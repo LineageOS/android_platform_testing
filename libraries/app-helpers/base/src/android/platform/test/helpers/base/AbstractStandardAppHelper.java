@@ -24,17 +24,22 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.platform.test.helpers.exceptions.AccountException;
 import android.support.test.launcherhelper.ILauncherStrategy;
 import android.support.test.launcherhelper.LauncherStrategyFactory;
 import android.support.test.uiautomator.By;
+import android.support.test.uiautomator.Configurator;
 import android.support.test.uiautomator.UiDevice;
 import android.util.Log;
+import android.view.KeyCharacterMap;
+import android.view.KeyEvent;
 
 import java.io.File;
 import java.io.IOException;
 
 public abstract class AbstractStandardAppHelper implements IStandardAppHelper {
+    private static final String LOG_TAG = AbstractStandardAppHelper.class.getSimpleName();
     private static final String SCREENSHOT_DIR = "apphelper-screenshots";
 
     private static File sScreenshotDirectory;
@@ -42,6 +47,8 @@ public abstract class AbstractStandardAppHelper implements IStandardAppHelper {
     public UiDevice mDevice;
     public Instrumentation mInstrumentation;
     public ILauncherStrategy mLauncherStrategy;
+    private final KeyCharacterMap mKeyCharacterMap =
+            KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD);
 
     public AbstractStandardAppHelper(Instrumentation instr) {
         mInstrumentation = instr;
@@ -153,5 +160,23 @@ public abstract class AbstractStandardAppHelper implements IStandardAppHelper {
             }
         }
         return sScreenshotDirectory;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean sendTextEvents (String text, long delay) {
+        Log.v(LOG_TAG, String.format("Sending text events for %s", text));
+        KeyEvent[] events = mKeyCharacterMap.getEvents(text.toCharArray());
+        for (KeyEvent event : events) {
+            if (KeyEvent.ACTION_DOWN == event.getAction()) {
+                if (!mDevice.pressKeyCode(event.getKeyCode(), event.getMetaState())) {
+                    return false;
+                }
+                SystemClock.sleep(delay);
+            }
+        }
+        return true;
     }
 }

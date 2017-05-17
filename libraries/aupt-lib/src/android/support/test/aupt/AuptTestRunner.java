@@ -191,6 +191,7 @@ public class AuptTestRunner extends InstrumentationTestRunner {
                 TimeUnit.MINUTES.toMillis(parseLongParam("ionInterval", 0)),
                 TimeUnit.MINUTES.toMillis(parseLongParam("pagetypeinfoInterval", 0)),
                 TimeUnit.MINUTES.toMillis(parseLongParam("traceInterval", 0)),
+                TimeUnit.MINUTES.toMillis(parseLongParam("bugreportzInterval", 0)),
                 mResultsDirectory, this);
 
         // Make our TestRunner and make sure we injectInstrumentation.

@@ -23,9 +23,9 @@ import android.util.Log;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DataCollector {
     private static final String TAG = "AuptDataCollector";
@@ -51,12 +51,20 @@ public class DataCollector {
     public DataCollector(long bugreportInterval, long graphicsInterval,      long meminfoInterval,
                          long cpuinfoInterval,   long fragmentationInterval, long ionHeapInterval,
                          long pagetypeinfoInterval, long traceInterval,
-                         File outputLocation, Instrumentation instr) {
+                         long bugreportzInterval, File outputLocation, Instrumentation instr) {
 
         resultsDirectory = outputLocation.getPath();
         instrumentation = instr;
 
-        put(LogGenerator.BUGREPORT, bugreportInterval);
+        if (bugreportzInterval > 0) {
+            put(LogGenerator.BUGREPORTZ, bugreportzInterval);
+            if (bugreportInterval > 0) {
+                Log.w(TAG, String.format("Both zipped and flat bugreports are enabled. Defaulting"
+                        + " to use zipped bugreports, at %s ms interval.", bugreportzInterval));
+            }
+        } else if (bugreportInterval > 0) {
+            put(LogGenerator.BUGREPORT, bugreportInterval);
+        }
         put(LogGenerator.CPU_INFO, cpuinfoInterval);
         put(LogGenerator.FRAGMENTATION, fragmentationInterval);
         put(LogGenerator.GRAPHICS_STATS, graphicsInterval);

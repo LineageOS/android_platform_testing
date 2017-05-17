@@ -17,22 +17,21 @@
 package android.support.test.aupt;
 
 import android.app.Instrumentation;
-import android.os.Environment;
-import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import java.io.File;
 import java.io.IOException;
 
 enum LogGenerator {
-    BUGREPORT      (new BugreportGenerator()),
-    GRAPHICS_STATS (new GraphicsGenerator()),
-    MEM_INFO       (new CompactMemInfoGenerator()),
-    CPU_INFO       (new CpuInfoGenerator()),
-    FRAGMENTATION  (new FragmentationGenerator()),
-    ION_HEAP       (new IonHeapGenerator()),
-    PAGETYPE_INFO  (new PageTypeInfoGenerator()),
-    TRACE          (new TraceGenerator());
+    BUGREPORT(new BugreportGenerator()),
+    BUGREPORTZ(new BugreportzGenerator()),
+    GRAPHICS_STATS(new GraphicsGenerator()),
+    MEM_INFO(new CompactMemInfoGenerator()),
+    CPU_INFO(new CpuInfoGenerator()),
+    FRAGMENTATION(new FragmentationGenerator()),
+    ION_HEAP(new IonHeapGenerator()),
+    PAGETYPE_INFO(new PageTypeInfoGenerator()),
+    TRACE(new TraceGenerator());
 
     private static final String TAG = "AuptDataCollector";
 
@@ -84,6 +83,18 @@ enum LogGenerator {
                 throws IOException, InterruptedException {
             try {
                 FilesystemUtil.saveBugreport(instr, logDir + "/bugreport-%s.txt");
+            } catch (IOException e) {
+                Log.w(TAG, String.format("Failed to take bugreport: %s", e.getMessage()));
+            }
+        }
+    }
+
+    private static class BugreportzGenerator implements Generator {
+        @Override
+        public void save(Instrumentation instr, String logDir)
+                throws IOException, InterruptedException {
+            try {
+                FilesystemUtil.saveBugreportz(instr);
             } catch (IOException e) {
                 Log.w(TAG, String.format("Failed to take bugreport: %s", e.getMessage()));
             }

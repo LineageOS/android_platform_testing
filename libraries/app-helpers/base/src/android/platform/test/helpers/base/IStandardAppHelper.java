@@ -84,4 +84,14 @@ public interface IStandardAppHelper {
      * @throws RuntimeException if creating the screenshot directory fails.
      */
     abstract boolean captureScreenshot(String name) throws IOException;
+
+    /**
+     * Sends text events to the device through key codes.
+     * <p>
+     * Note: use this only when text accessibility is not supported.
+     * @param text the text to input as events
+     * @param delay the delay between each event
+     * @return true if successful, false otherwise
+     */
+    abstract boolean sendTextEvents(String text, long delay);
 }

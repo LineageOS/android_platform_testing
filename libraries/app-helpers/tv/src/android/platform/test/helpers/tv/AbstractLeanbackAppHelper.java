@@ -17,6 +17,7 @@
 package android.platform.test.helpers;
 
 import android.app.Instrumentation;
+import android.os.SystemClock;
 import android.platform.test.helpers.exceptions.UiTimeoutException;
 import android.platform.test.helpers.exceptions.UnknownUiException;
 import android.platform.test.utils.DPadUtil;
@@ -40,7 +41,7 @@ public abstract class AbstractLeanbackAppHelper extends AbstractStandardAppHelpe
     private static final long OPEN_HEADER_WAIT_TIME_MS = 5000;
     private static final int OPEN_SIDE_PANEL_MAX_ATTEMPTS = 5;
     private static final long MAIN_ACTIVITY_WAIT_TIME_MS = 250;
-    private static final long SELECT_WAIT_TIME_MS = 5000;
+    private static final long UI_WAIT_TIME_MS = 5000;
     private static final long FOCUS_WAIT_TIME_MS = 100;
 
     // The notable widget classes in Leanback Library
@@ -58,6 +59,13 @@ public abstract class AbstractLeanbackAppHelper extends AbstractStandardAppHelpe
     protected DPadUtil mDPadUtil;
     public ILeanbackLauncherStrategy mLauncherStrategy;
 
+    /**
+     * A condition to be satisfied by BaseView or UI actions. The condition can use a given
+     * focused {@link UiObject2}.
+     */
+    public abstract class SelectCondition {
+        public abstract boolean apply(UiObject2 focus);
+    }
 
     public AbstractLeanbackAppHelper(Instrumentation instr) {
         super(instr);
@@ -151,6 +159,7 @@ public abstract class AbstractLeanbackAppHelper extends AbstractStandardAppHelpe
      * @param timeoutMs
      */
     public void open(long timeoutMs) {
+        Log.v(TAG, String.format("[%s] Opening the package in %d(ms)", getPackage(), timeoutMs));
         open();
         if (!waitForOpen(timeoutMs)) {
             throw new UiTimeoutException(String.format("Timed out to open a target package %s:"
@@ -165,6 +174,7 @@ public abstract class AbstractLeanbackAppHelper extends AbstractStandardAppHelpe
      * </p>
      */
     public void openHeader(String headerName) {
+        Log.v(TAG, String.format("[%s] Opening the header %s", getPackage(), headerName));
         openBrowseHeaders();
         // header is focused; it should not be after pressing the DPad
         selectHeader(headerName);
@@ -205,58 +215,91 @@ public abstract class AbstractLeanbackAppHelper extends AbstractStandardAppHelpe
     }
 
     /**
-     * Select target item through the container in the given direction.
-     * @param container
-     * @param target
-     * @param direction
-     * @return the focused object
+     * Select an UI element with given {@link BySelector} traversing down from {@link UiObject2}
+     * This action keeps moving a focus in a given {@link Direction} until it finds matched element.
+     * @param condition the search criteria to match an element
+     * @param container the container {@link UiObject2} in which it searches for a focus.
+     *                  Use this when it needs to search for a certain area only.
+     *                  Set null if move a focus until it can't move any more.
+     * @param direction the direction to find
+     * @return a {@link UiObject2} which represents the matched element
      */
-    public UiObject2 select(UiObject2 container, BySelector target, Direction direction) {
-        if (container == null) {
-            throw new IllegalArgumentException("The container should not be null.");
-        }
-        UiObject2 focus = waitForFocus(container, FOCUS_WAIT_TIME_MS, true);
-        while (!focus.hasObject(target)) {
-            UiObject2 prev = focus;
+    public UiObject2 select(SelectCondition condition, UiObject2 container, Direction direction) {
+        UiObject2 focus = findFocus(container, FOCUS_WAIT_TIME_MS);
+        while (!condition.apply(focus)) {
+            Log.d(TAG, String.format("select: moving a focus to %s from %s",
+                    direction, focus.toString()));
+            UiObject2 focused = focus;
             mDPadUtil.pressDPad(direction);
-            focus = container.findObject(By.focused(true));
-            if (focus == null) {
-                mDPadUtil.pressDPad(direction);
-                focus = container.findObject(By.focused(true));
-            }
-            if (focus.equals(prev)) {
-                // It reached at the end, but no target is found.
+            focus = findFocus(container, FOCUS_WAIT_TIME_MS);
+            // Check if it reaches to an end where it no longer moves a focus to next element
+            if (focused.equals(focus)) {
+                Log.d(TAG, "select: not found until it reaches to an end.");
                 return null;
             }
         }
+        Log.i(TAG, String.format("select: selected %s", focus.toString()));
         return focus;
     }
 
-    public UiObject2 waitForFocus(UiObject2 object) {
-        // By default this method returns immediately and throws an Exception if no focus is found
-        return waitForFocus(object, 0, true);
+    /**
+     * Select target item through the container in the given direction.
+     * @param container
+     * @param selector
+     * @param direction
+     * @return the focused object
+     */
+    public UiObject2 select(UiObject2 container, final BySelector selector, Direction direction) {
+        return select(new SelectCondition() {
+            @Override
+            public boolean apply(UiObject2 focus) {
+                return focus.hasObject(selector);
+            }
+        }, container, direction);
+    }
+
+    public UiObject2 selectBidirect(SelectCondition condition, UiObject2 container,
+            Direction direction) {
+        UiObject2 object = select(condition, container, direction);
+        if (object == null) {
+            object = select(condition, container, Direction.reverse(direction));
+        }
+        return object;
+    }
+
+    public UiObject2 selectBidirect(final BySelector selector, UiObject2 container,
+            Direction direction) {
+        return selectBidirect(new SelectCondition() {
+            @Override
+            public boolean apply(UiObject2 focus) {
+                return focus.hasObject(selector);
+            }
+        }, container, direction);
     }
 
     /**
-     * Wait for given object to have an element that is focused.
-     * @param object {@link UiObject2} under which it searches for an element that is focused.
-     *               Null if it searches through the entire hierarchy of accessibility nodes
-     * @param timeoutMs Maximum amount of time to wait in milliseconds
-     * @param throwIfFail Throw {@link IllegalStateException} if no element under the object is
-     *                    focused in a given timeout
-     * @return The {@link UiObject2} that has a focused element, or null if no focus
+     * Wait for an UI element to have a focus.
+     * @param fromObject {@link UiObject2} under which it searches for an element that is focused.
+     *               Set Null if it searches through the entire hierarchy of accessibility nodes
+     * @param timeoutMs Maximum amount of time to wait in milliseconds.
+     * @return The {@link UiObject2} that has a focused element, or null if no focus.
      */
-    public UiObject2 waitForFocus(UiObject2 object, long timeoutMs, boolean throwIfFail) {
+    public UiObject2 findFocus(UiObject2 fromObject, long timeoutMs) {
         UiObject2 focused;
-        if (object == null) {
+        if (fromObject == null) {
             focused = mDevice.wait(Until.findObject(By.focused(true)), timeoutMs);
         } else {
-            focused = object.wait(Until.findObject(By.focused(true)), timeoutMs);
-        }
-        if (throwIfFail && focused == null) {
-            throw new IllegalStateException("The object should have a focused descendant.");
+            focused = fromObject.wait(Until.findObject(By.focused(true)), timeoutMs);
         }
         return focused;
+    }
+
+    /**
+     * Return the {@link UiObject2} that has a focused element searching through the entire view
+     * hierarchy, and throws an exception if no focus exists.
+     */
+    public UiObject2 findFocus() {
+        return findFocus(null, FOCUS_WAIT_TIME_MS);
     }
 
     /**
@@ -270,7 +313,7 @@ public abstract class AbstractLeanbackAppHelper extends AbstractStandardAppHelpe
         UiObject2 container = mDevice.wait(
                 Until.findObject(
                         By.res(getPackage(), "guidedactions_list").hasChild(By.focused(true))),
-                SELECT_WAIT_TIME_MS);
+                UI_WAIT_TIME_MS);
         // Search down, then up
         BySelector selector = By.res(getPackage(), "guidedactions_item_title").text(action);
         UiObject2 focused = select(container, selector, Direction.DOWN);
@@ -290,8 +333,33 @@ public abstract class AbstractLeanbackAppHelper extends AbstractStandardAppHelpe
     public String getGuidanceTitleText() {
         assertWidgetEquals(Widget.GUIDED_STEP_FRAGMENT);
         UiObject2 object = mDevice.wait(
-                Until.findObject(By.res(getPackage(), "guidance_title")), SELECT_WAIT_TIME_MS);
+                Until.findObject(By.res(getPackage(), "guidance_title")), UI_WAIT_TIME_MS);
         return object.getText();
+    }
+
+    /**
+     * Setup expectation: On details fragment.
+     * <p>
+     * Best effort attempt to select a given details overview action.
+     * </p>
+     */
+    public UiObject2 selectDetailsOverviewAction(String action) {
+        assertWidgetEquals(Widget.DETAILS_FRAGMENT);
+
+        // Move a focus to the row where the action buttons are placed.
+        UiObject2 focused = selectBidirect(new SelectCondition() {
+            @Override
+            public boolean apply(UiObject2 focus) {
+                return mDevice.hasObject(By.res(getPackage(), "details_overview_actions").hasChild(
+                        By.focused(true)));
+            }
+        }, null, Direction.DOWN);
+        if (focused == null) {
+            throw new UnknownUiException("Failed to find the details_overview_actions row");
+        }
+
+        // Move a focus to the row where the action buttons are placed.
+        return selectBidirect(By.text(action), null, Direction.RIGHT);
     }
 
     /**
@@ -303,7 +371,7 @@ public abstract class AbstractLeanbackAppHelper extends AbstractStandardAppHelpe
         assertWidgetEquals(Widget.BROWSE_ROWS_FRAGMENT);
         return mDevice.wait(Until.findObject(
                 By.focused(true).hasDescendant(By.res(getPackage(), "title_text").text(title))),
-                SELECT_WAIT_TIME_MS);
+                UI_WAIT_TIME_MS);
     }
 
     /**
@@ -350,7 +418,7 @@ public abstract class AbstractLeanbackAppHelper extends AbstractStandardAppHelpe
         }
         mDPadUtil.pressDPadCenter();
         mDevice.wait(Until.gone(By.res(getPackage(), "title_text").text(title)),
-                SELECT_WAIT_TIME_MS);
+                UI_WAIT_TIME_MS);
     }
 
     /**
@@ -419,37 +487,33 @@ public abstract class AbstractLeanbackAppHelper extends AbstractStandardAppHelpe
      * The timeout needs to be long enough if it runs under low bandwidth environments.
      */
     protected UiObject2 selectHeader(String headerName) {
-        long waitMs = 10 * 1000;    // 10 sec
+        long retryWaitMs = 10 * 1000;    // 10 sec
         int maxAttempts = 3;
         UiObject2 header;
         while (maxAttempts-- > 0) {
-            header = selectHeader(headerName, waitMs);
+            header = selectHeader(headerName, Direction.DOWN);
             if (header != null) {
                 return header;
             }
-            waitMs = 2 * waitMs;
+            retryWaitMs *= 2;
+            SystemClock.sleep(retryWaitMs);
         }
         throw new UnknownUiException("Failed to select header : " + headerName);
     }
 
-    protected UiObject2 selectHeader(String headerName, long waitMs) {
+    /**
+     * Moves a focus in a given direction and reverse direction to select the header
+     */
+    protected UiObject2 selectHeader(String headerName, Direction direction) {
+        Log.v(TAG, String.format("[%s] Selecting the header %s", getPackage(), headerName));
         UiObject2 container = mDevice.wait(
                 Until.findObject(getBrowseHeadersSelector()), OPEN_HEADER_WAIT_TIME_MS);
+        if (container == null) {
+            throw new UnknownUiException(String.format(
+                    "Failed to find the header [%s] in the browse header", headerName));
+        }
+
         BySelector header = By.clazz(".TextView").text(headerName);
-
-        // Wait until the row header text appears on screen at runtime.
-        mDevice.wait(Until.findObject(header), waitMs);
-
-        // Search down, then up to select the header
-        UiObject2 focused = select(container, header, Direction.DOWN);
-        if (focused != null) {
-            return focused;
-        }
-        focused = select(container, header, Direction.UP);
-        if (focused != null) {
-            return focused;
-        }
-        return null;
+        return selectBidirect(header, container, direction);
     }
-
 }

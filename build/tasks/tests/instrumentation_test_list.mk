@@ -25,6 +25,7 @@ instrumentation_tests := \
     DocumentsUITests \
     ShellTests \
     SystemUITests \
+    TestablesTests \
     RecyclerViewTests \
     FrameworksWifiApiTests \
     FrameworksWifiTests \

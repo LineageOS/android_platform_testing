@@ -43,6 +43,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -56,6 +57,7 @@ public class AppTransitionTests {
 
     private static final String TAG = AppTransitionTests.class.getSimpleName();
     private static final int JOIN_TIMEOUT = 10000;
+    private static final int DEFAULT_DROP_CACHE_DELAY = 2000;
     private static final String DEFAULT_POST_LAUNCH_TIMEOUT = "5000";
     private static final String DEFAULT_LAUNCH_COUNT = "10";
     private static final String SUCCESS_MESSAGE = "Status: ok";
@@ -104,6 +106,7 @@ public class AppTransitionTests {
     private Set<String> mTraceCategoriesSet = null;
     private AtraceLogger mAtraceLogger = null;
     private String mComponentName = null;
+    private Map<String,String> mPreAppsComponentName = new HashMap<String, String>();
 
     @Before
     public void setUp() throws Exception {
@@ -145,6 +148,7 @@ public class AppTransitionTests {
             }
         }
         mDevice.setOrientationNatural();
+        sleep(mPostLaunchTimeout);
         cleanTestApps();
     }
 
@@ -169,26 +173,38 @@ public class AppTransitionTests {
         // Perform cold app launch from launcher screen
         for (int appCount = 0; appCount < mAppListArray.length; appCount++) {
             String appName = mAppListArray[appCount];
-            for (int launchCount = 0; launchCount < mLaunchIterations; launchCount++) {
+            // Additional launch to account for cold launch
+            if (setupAppLaunch(appName) == ILauncherStrategy.LAUNCH_FAILED_TIMESTAMP) {
+                continue;
+            }
+            closeApps(new String[] {
+                    appName
+            });
+            getInstrumentation().getUiAutomation()
+                    .executeShellCommand(DROP_CACHE_SCRIPT);
+            sleep(DEFAULT_DROP_CACHE_DELAY);
+            for (int launchCount = 0; launchCount <= mLaunchIterations; launchCount++) {
                 if (null != mAtraceLogger) {
                     mAtraceLogger.atraceStart(mTraceCategoriesSet, mTraceBufferSize,
                             mTraceDumpInterval, mRootTraceSubDir,
                             String.format("%s-%d", appName, launchCount));
                 }
-                mLauncherStrategy.launch(appName, mAppLaunchIntentsMapping.get(appName).
-                        getComponent().flattenToShortString().split("\\/")[0]);
+                mLauncherStrategy.launch(appName, mComponentName.split("\\/")[0]);
                 if (null != mAtraceLogger) {
                     mAtraceLogger.atraceStop();
                 }
                 sleep(mPostLaunchTimeout);
+                mDevice.pressHome();
+		mDevice.waitForIdle();
                 closeApps(new String[] {
                         appName
                 });
-                pressUiHome();
                 sleep(mPostLaunchTimeout);
                 getInstrumentation().getUiAutomation()
                         .executeShellCommand(DROP_CACHE_SCRIPT);
+                sleep(DEFAULT_DROP_CACHE_DELAY);
             }
+            mComponentName = null;
             // Update the result with the component name
             updateResult(appName);
         }
@@ -209,12 +225,12 @@ public class AppTransitionTests {
         }
         for (int appCount = 0; appCount < mAppListArray.length; appCount++) {
             String appName = mAppListArray[appCount];
-            // Additional launches to account for cold launch and one hot launch.
+            // Additional launch to account for cold launch
             if (setupAppLaunch(appName) == ILauncherStrategy.LAUNCH_FAILED_TIMESTAMP) {
                 continue;
             }
-            // Hot app launch for given launch iterations.
-            for (int launchCount = 0; launchCount < (mLaunchIterations); launchCount++) {
+            // Hot app launch for given (launch iterations + 1) times.
+            for (int launchCount = 0; launchCount <= (mLaunchIterations); launchCount++) {
                 if (null != mAtraceLogger) {
                     mAtraceLogger.atraceStart(mTraceCategoriesSet, mTraceBufferSize,
                             mTraceDumpInterval, mRootTraceSubDir,
@@ -225,9 +241,10 @@ public class AppTransitionTests {
                     mAtraceLogger.atraceStop();
                 }
                 sleep(mPostLaunchTimeout);
-                pressUiHome();
+                mDevice.pressHome();
                 sleep(mPostLaunchTimeout);
             }
+            mComponentName = null;
             // Update the result with the component name
             updateResult(appName);
         }
@@ -250,24 +267,14 @@ public class AppTransitionTests {
         }
         mPreAppsList = mPreAppsList.replaceAll("%"," ");
         mPreAppsListArray = mPreAppsList.split(DELIMITER);
+        mPreAppsComponentName.clear();
         populateRecentsList();
-        // Increment by one to account for the first cold launch and discard it
-        // while parsing
-        mLaunchIterations++;
         for (int appCount = 0; appCount < mAppListArray.length; appCount++) {
             String appName = mAppListArray[appCount];
             long appLaunchTime = -1L;
-            for (int launchCount = 0; launchCount < mLaunchIterations; launchCount++) {
-                // "NOT_SURE" for first launch because apps in the PreAppsList
-                // could be part of AppList
-                if (launchCount == 0) {
-                    appLaunchTime = startApp(appName, NOT_SURE);
-                } else {
-                    appLaunchTime = startApp(appName, HOT_LAUNCH);
-                }
-                if (appLaunchTime == ILauncherStrategy.LAUNCH_FAILED_TIMESTAMP) {
-                    break;
-                }
+            for (int launchCount = 0; launchCount <= mLaunchIterations; launchCount++) {
+                mLauncherStrategy.launch(appName, mPreAppsComponentName.get(appName).split(
+                        "\\/")[0]);
                 sleep(mPostLaunchTimeout);
                 if (null != mAtraceLogger && launchCount > 0) {
                     mAtraceLogger.atraceStart(mTraceCategoriesSet, mTraceBufferSize,
@@ -279,7 +286,7 @@ public class AppTransitionTests {
                 if (null != mAtraceLogger && launchCount > 0) {
                     mAtraceLogger.atraceStop();
                 }
-                pressUiHome();
+                mDevice.pressHome();
                 sleep(mPostLaunchTimeout);
             }
             updateResult(appName);
@@ -304,14 +311,15 @@ public class AppTransitionTests {
         }
         mPreAppsList = mPreAppsList.replaceAll("%", " ");
         mPreAppsListArray = mPreAppsList.split(DELIMITER);
+        mPreAppsComponentName.clear();
         populateRecentsList();
         for (int appCount = 0; appCount < mAppListArray.length; appCount++) {
             String appName = mAppListArray[appCount];
-            // Additional launches to account for cold launch and one hot launch.
-            if (setupAppLaunch(appName) == ILauncherStrategy.LAUNCH_FAILED_TIMESTAMP) {
-                continue;
-            }
-            for (int launchCount = 0; launchCount < (mLaunchIterations); launchCount++) {
+            // To bring the app to launch as first item from recents task.
+            mLauncherStrategy.launch(appName, mPreAppsComponentName.get(appName).split(
+                    "\\/")[0]);
+            sleep(mPostLaunchTimeout);
+            for (int launchCount = 0; launchCount <= mLaunchIterations; launchCount++) {
                 if (null != mAtraceLogger) {
                     mAtraceLogger.atraceStart(mTraceCategoriesSet, mTraceBufferSize,
                             mTraceDumpInterval, mRootTraceSubDir,
@@ -322,7 +330,7 @@ public class AppTransitionTests {
                 if (null != mAtraceLogger) {
                     mAtraceLogger.atraceStop();
                 }
-                pressUiHome();
+                mDevice.pressHome();
                 sleep(mPostLaunchTimeout);
             }
             updateResult(appName);
@@ -330,8 +338,8 @@ public class AppTransitionTests {
     }
 
     /**
-     * Launch given app couple of times to account for the cold launch and one hot launch and
-     * to update component name associated with the hot launch of the given app.
+     * Launch given app to account for the cold launch and track
+     * component name associated with the app.
      * @throws RemoteException if press home is not successful
      * @param appName
      * @return
@@ -342,13 +350,8 @@ public class AppTransitionTests {
             return appLaunchTime;
         }
         sleep(mPostLaunchTimeout);
-        pressUiHome();
-        appLaunchTime = startApp(appName, HOT_LAUNCH);
-        if (appLaunchTime == ILauncherStrategy.LAUNCH_FAILED_TIMESTAMP) {
-            return appLaunchTime;
-        }
+        mDevice.pressHome();
         sleep(mPostLaunchTimeout);
-        pressUiHome();
         return appLaunchTime;
     }
 
@@ -410,7 +413,8 @@ public class AppTransitionTests {
         closeApps(mAppListArray);
         getInstrumentation().getUiAutomation()
                         .executeShellCommand(DROP_CACHE_SCRIPT);
-        pressUiHome();
+        sleep(DEFAULT_DROP_CACHE_DELAY);
+        mDevice.pressHome();
         sleep(mPostLaunchTimeout);
     }
 
@@ -420,11 +424,13 @@ public class AppTransitionTests {
      */
     private void populateRecentsList() throws RemoteException {
         for (int preAppCount = 0; preAppCount < mPreAppsListArray.length; preAppCount++) {
-            startApp(mPreAppsListArray[preAppCount], COLD_LAUNCH);
+            startApp(mPreAppsListArray[preAppCount], NOT_SURE);
+            mPreAppsComponentName.put(mPreAppsListArray[preAppCount], mComponentName);
             sleep(mPostLaunchTimeout);
-            pressUiHome();
+            mDevice.pressHome();
             sleep(mPostLaunchTimeout);
         }
+        mComponentName = null;
     }
 
 
@@ -506,7 +512,7 @@ public class AppTransitionTests {
         @Override
         public void run() {
             String packageName = mLaunchIntent.getComponent().getPackageName();
-            String componentName = mLaunchIntent.getComponent().flattenToShortString();
+            String componentName = mLaunchIntent.getComponent().flattenToString();
             String launchCmd = String.format("%s %s", APP_LAUNCH_CMD, componentName);
             ParcelFileDescriptor parcelDesc = getInstrumentation().getUiAutomation()
                     .executeShellCommand(launchCmd);
@@ -549,7 +555,7 @@ public class AppTransitionTests {
                     // Needed to update the component name if the very first launch activity
                     // is different from hot launch activity (i.e YouTube)
                     if ((launchSuccess && (mLaunchMode.contains(HOT_LAUNCH) ||
-                            mLaunchMode.contains(NOT_SURE)) && lineCount == 4)) {
+                            mLaunchMode.contains(NOT_SURE)) && lineCount == 3)) {
                         String activitySplit[] = line.split(":");
                         if (activitySplit[0].contains(ACTIVITY)) {
                             mCmpName = activitySplit[1].trim();
@@ -601,7 +607,7 @@ public class AppTransitionTests {
             } else {
                 // Component name needed for parsing the events log
                 mResult.putString(appName, mAppLaunchIntentsMapping.get(appName).
-                        getComponent().flattenToShortString());
+                        getComponent().flattenToString());
             }
     }
 

@@ -63,21 +63,9 @@ public class WearLauncherStrategy implements ILauncherStrategy {
     @Override
     public void open() {
         if (!mDevice.hasObject(getHotSeatSelector())) {
-            mDevice.pressBack();
+            mDevice.pressHome();
             if (!mDevice.wait(Until.hasObject(getHotSeatSelector()), 5000)) {
-                // HACK: dump hierarchy to logcat
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                try {
-                    mDevice.dumpWindowHierarchy(baos);
-                    baos.flush();
-                    baos.close();
-                    String[] lines = baos.toString().split("\\r?\\n");
-                    for (String line : lines) {
-                        Log.d(LOG_TAG, line.trim());
-                    }
-                } catch (IOException ioe) {
-                    Log.e(LOG_TAG, "error dumping XML to logcat", ioe);
-                }
+                dumpScreen("Return Watch face");
                 Assert.fail("Failed to open launcher");
             }
             mDevice.waitForIdle();
@@ -92,12 +80,20 @@ public class WearLauncherStrategy implements ILauncherStrategy {
     @Override
     public UiObject2 openAllApps(boolean reset) {
         if (!mDevice.hasObject(getAllAppsSelector())) {
-            mDevice.pressBack();
+            mDevice.pressHome();
+            mDevice.waitForIdle();
+            if (!mDevice.wait(Until.hasObject(getAllAppsSelector()), 5000)) {
+                dumpScreen("Open launcher");
+                Assert.fail("Failed to open launcher");
+            }
         }
         UiObject2 allAppsContainer = mDevice.wait(Until.findObject(getAllAppsSelector()), 2000);
         if (reset) {
             CommonLauncherHelper.getInstance(mDevice).scrollBackToBeginning(
                     allAppsContainer, Direction.reverse(getAllAppsScrollDirection()));
+        }
+        if (allAppsContainer == null) {
+            Assert.fail("Failed to find launcher");
         }
         return allAppsContainer;
     }
@@ -179,5 +175,20 @@ public class WearLauncherStrategy implements ILauncherStrategy {
         BySelector app = By.res(
                 getSupportedLauncherPackage(), "title").clazz(TextView.class).text(appName);
         return CommonLauncherHelper.getInstance(mDevice).launchApp(this, app, packageName);
+    }
+
+    private void dumpScreen(String description) {
+        // DEBUG: dump hierarchy to logcat
+        Log.d(LOG_TAG, "Dump Screen at " + description);
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()){
+            mDevice.dumpWindowHierarchy(baos);
+            baos.flush();
+            String[] lines = baos.toString().split(System.lineSeparator());
+            for (String line : lines) {
+                Log.d(LOG_TAG, line.trim());
+            }
+        } catch (IOException ioe) {
+            Log.e(LOG_TAG, "error dumping XML to logcat", ioe);
+        }
     }
 }

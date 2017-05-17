@@ -1,6 +1,5 @@
 /*
-
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +14,22 @@
  * limitations under the License.
  */
 
-package com.google.android.wearable.support;
+package android.platform.test.helpers;
 
-import android.app.Activity;
+import android.app.Instrumentation;
 
-public class CustomNotificationRemoteInputActivity extends Activity{
+public abstract class AbstractWatchFacePickerHelper extends AbstractStandardAppHelper {
+
+    public AbstractWatchFacePickerHelper(Instrumentation instr) {
+        super(instr);
+    }
+
+    /**
+     * Setup expectation: Watch face picker is open
+     *
+     * Select watch face from favorites or add more watch faces
+     */
+    public abstract void selectWatchFace(String watchFaceName);
+
 
 }
