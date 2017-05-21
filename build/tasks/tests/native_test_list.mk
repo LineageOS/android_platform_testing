@@ -44,6 +44,7 @@ native_tests := \
     liblog-unit-tests \
     libminijail_unittest_gtest \
     libtextclassifier_tests \
+    libvintf_test \
     libwifi-system_tests \
     linker-unit-tests \
     logcat-unit-tests \
@@ -71,6 +72,7 @@ native_tests := \
     syscall_filter_unittest_gtest \
     time-unit-tests \
     update_engine_unittests \
+    vintf_object_test \
     wificond_unit_test \
     wifilogd_unit_test \
     ziparchive-tests \
