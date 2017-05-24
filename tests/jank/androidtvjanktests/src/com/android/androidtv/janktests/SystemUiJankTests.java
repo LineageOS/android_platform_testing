@@ -42,6 +42,7 @@ public class SystemUiJankTests extends JankTestBase {
     private static final String TAG = SystemUiJankTests.class.getSimpleName();
     private static final int SHORT_TIMEOUT = 1000;
     private static final int INNER_LOOP = 4;
+    private static final int INNER_LOOP_SETTINGS = 8;
     private static final String TVLAUNCHER_PACKAGE = "com.google.android.tvlauncher";
     private static final String SETTINGS_PACKAGE = "com.android.tv.settings";
     private static final BySelector SELECTOR_TOP_ROW = By.res(TVLAUNCHER_PACKAGE, "top_row");
@@ -61,10 +62,10 @@ public class SystemUiJankTests extends JankTestBase {
 
     public void goHome() {
         mDevice.pressHome();
-        // Ensure that Home screen is being displayed
-        UiObject2 homeScreen = mDevice.wait(Until.findObject(
-                By.scrollable(true).res(TVLAUNCHER_PACKAGE, "home_view_container")),
+        UiObject2 homeScreen = mDevice
+            .wait(Until.findObject(By.res(TVLAUNCHER_PACKAGE, "home_view_container")),
                 SHORT_TIMEOUT);
+        Assert.assertNotNull("Ensure that Home screen is being displayed", homeScreen);
     }
 
     public void goTopRow() {
@@ -76,14 +77,14 @@ public class SystemUiJankTests extends JankTestBase {
         super.afterTest(metrics);
     }
 
-    // Measures jank while scrolling down the Home screen
+    // Measures jank while navigating up and down the Home screen
     @JankTest(expectedFrames=100, beforeTest = "goHome",
             afterTest="afterTestHomeScreenNavigation")
     @GfxMonitor(processName=TVLAUNCHER_PACKAGE)
     public void testHomeScreenNavigation() throws UiObjectNotFoundException {
         // We've already verified that Home screen is being displayed.
-        // Scroll up and down the home screen.
-        navigateDownAndUpCurrentScreen();
+        // Navigate up and down the home screen.
+        navigateDownAndUpCurrentScreen(INNER_LOOP);
     }
 
     // Navigates to the Settings button on the Top row
@@ -91,8 +92,8 @@ public class SystemUiJankTests extends JankTestBase {
         // Navigate to Home screen and verify that it is being displayed.
         goHome();
         goTopRow();
-        Assert.assertNotNull(selectBidirect(By.res(TVLAUNCHER_PACKAGE, "settings").focused(true),
-                Direction.RIGHT));
+        Assert.assertNotNull("Ensure that Settings button is focused",
+            selectBidirect(By.res(TVLAUNCHER_PACKAGE, "settings").focused(true), Direction.RIGHT));
     }
 
     public void afterTestSettings(Bundle metrics) throws IOException {
@@ -119,9 +120,12 @@ public class SystemUiJankTests extends JankTestBase {
 
     // Navigates to the Settings Screen
     public void goToSettings() {
-        goHome();
-        goTopRow();
+        goToSettingsButton();
         mDPadUtil.pressDPadCenter();
+        Assert.assertNotNull("Ensure that Settings is being displayed",
+            mDevice.wait(
+                Until.hasObject(By.res(SETTINGS_PACKAGE, "settings_preference_fragment_container")),
+                SHORT_TIMEOUT));
     }
 
     // Measures jank while scrolling on the Settings screen
@@ -129,19 +133,15 @@ public class SystemUiJankTests extends JankTestBase {
             afterTest="afterTestSettings")
     @GfxMonitor(processName=SETTINGS_PACKAGE)
     public void testSettingsScreenNavigation() throws UiObjectNotFoundException {
-        // Ensure that Settings screen is being displayed
-        mDevice.wait(Until.hasObject(
-                By.res(SETTINGS_PACKAGE, "settings_preference_fragment_container")),
-                SHORT_TIMEOUT);
-        navigateDownAndUpCurrentScreen();
+        navigateDownAndUpCurrentScreen(INNER_LOOP_SETTINGS);
     }
 
-    public void navigateDownAndUpCurrentScreen() {
-        for (int i = 0; i < INNER_LOOP; i++) {
+    public void navigateDownAndUpCurrentScreen(int iterations) {
+        for (int i = 0; i < iterations; i++) {
             // Press DPad button down eight times in succession
             mDPadUtil.pressDPadDown();
         }
-        for (int i = 0; i < INNER_LOOP; i++) {
+        for (int i = 0; i < iterations; i++) {
             // Press DPad button up eight times in succession.
             mDPadUtil.pressDPadUp();
         }
