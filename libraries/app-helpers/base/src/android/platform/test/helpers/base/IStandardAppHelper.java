@@ -20,7 +20,7 @@ import android.content.pm.PackageManager.NameNotFoundException;
 
 import java.io.IOException;
 
-public interface IStandardAppHelper {
+public interface IStandardAppHelper extends IAppHelper {
 
     /**
      * Setup expectation: On the launcher home screen.

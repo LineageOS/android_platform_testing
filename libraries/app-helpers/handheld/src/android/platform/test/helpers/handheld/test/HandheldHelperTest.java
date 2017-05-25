@@ -23,14 +23,14 @@ import android.platform.test.helpers.AbstractStandardAppHelper;
 public abstract class HandheldHelperTest<T extends AbstractStandardAppHelper>
         extends HelperTest<T> {
     @Override
-    public void setUp() {
+    public void initialize() {
         try {
-            // Set the orientation first.
-            getDevice().setOrientationNatural();
+            if (!getDevice().isNaturalOrientation()) {
+                getDevice().setOrientationNatural();
+            }
         } catch (RemoteException e) {
             throw new RuntimeException("Could not set orientation.", e);
         }
-        // Continue with the standard set up.
-        super.setUp();
+        super.initialize();
     }
 }

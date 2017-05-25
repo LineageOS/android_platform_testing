@@ -17,11 +17,14 @@
 package android.platform.test.helpers;
 
 import static java.lang.reflect.Modifier.isAbstract;
+import static java.lang.reflect.Modifier.isInterface;
 
 import android.app.Instrumentation;
 import android.content.Context;
 import android.util.Log;
+
 import dalvik.system.DexFile;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.ClassLoader;
@@ -136,7 +139,7 @@ public class HelperManager {
      * @throws RuntimeException if no implementation is found
      * @return a concrete implementation of base
      */
-    public <T extends AbstractStandardAppHelper> T get(Class<T> base) {
+    public <T extends IAppHelper> T get(Class<T> base) {
         List<T> implementations = getAll(base);
 
         if (implementations.size() > 0) {
@@ -153,7 +156,7 @@ public class HelperManager {
      * @param base the interface base class to find an implementation for
      * @return a list of all concrete implementations we could find
      */
-    public <T extends AbstractStandardAppHelper> List<T> getAll(Class<T> base) {
+    public <T extends IAppHelper> List<T> getAll(Class<T> base) {
         ClassLoader loader = HelperManager.class.getClassLoader();
         List<T> implementations = new ArrayList<>();
 
@@ -162,13 +165,15 @@ public class HelperManager {
             Class<?> clazz = null;
             try {
                 clazz = loader.loadClass(className);
+                // Skip non-instantiable classes
+                if (isAbstract(clazz.getModifiers()) || isInterface(clazz.getModifiers())) {
+                    continue;
+                }
             } catch (ClassNotFoundException e) {
                 Log.w(LOG_TAG, String.format("Class not found: %s", className));
                 continue;
             }
-            if (base.isAssignableFrom(clazz) &&
-                    !clazz.equals(base) &&
-                    !isAbstract(clazz.getModifiers())) {
+            if (base.isAssignableFrom(clazz) && !clazz.equals(base)) {
 
                 // Instantiate the implementation class and return
                 try {
