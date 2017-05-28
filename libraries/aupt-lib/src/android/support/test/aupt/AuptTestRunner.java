@@ -70,6 +70,8 @@ public class AuptTestRunner extends InstrumentationTestRunner {
     /* Constants */
     private static final String LOG_TAG = AuptTestRunner.class.getSimpleName();
     private static final Long ANR_DELAY = 30000L;
+    private static final Long DEFAULT_SUITE_TIMEOUT = 0L;
+    private static final Long DEFAULT_TEST_TIMEOUT = 10L;
     private static final SimpleDateFormat SCREENSHOT_DATE_FORMAT =
         new SimpleDateFormat("dd-mm-yy:HH:mm:ss:SSS");
 
@@ -83,7 +85,6 @@ public class AuptTestRunner extends InstrumentationTestRunner {
     private boolean mRecordMeminfo;
     private long mIterations;
     private long mSeed;
-    private long mTestCaseTimeout;
 
     /* Dumpheap Parameters */
     private boolean mDumpheapEnabled;
@@ -122,7 +123,6 @@ public class AuptTestRunner extends InstrumentationTestRunner {
         mDumpheapThreshold = parseLongParam("dumpheapThreshold", 200 * 1024 * 1024);
         mDumpheapInterval = parseLongParam("dumpheapInterval", 60 * 60 * 1000);
         mMaxDumpheaps = parseLongParam("maxDumpheaps", 5);
-        mTestCaseTimeout = parseLongParam("testCaseTimeout", TimeUnit.MINUTES.toMillis(10));
         mSeed = parseLongParam("seed", new Random().nextLong());
 
         // Option: -e finishCommand 'a;b;c;d'
@@ -195,7 +195,9 @@ public class AuptTestRunner extends InstrumentationTestRunner {
                 mResultsDirectory, this);
 
         // Make our TestRunner and make sure we injectInstrumentation.
-        mRunner = new DexTestRunner(this, mScheduler, mJars, mTestCaseTimeout) {
+        mRunner = new DexTestRunner(this, mScheduler, mJars,
+                TimeUnit.MINUTES.toMillis(parseLongParam("testCaseTimeout", DEFAULT_TEST_TIMEOUT)),
+                TimeUnit.MINUTES.toMillis(parseLongParam("suiteTimeout", DEFAULT_SUITE_TIMEOUT))) {
             @Override
             public void runTest(TestResult result) {
                 for (TestCase test: mTestCases) {

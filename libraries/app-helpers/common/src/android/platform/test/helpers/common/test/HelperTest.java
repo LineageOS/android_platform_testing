@@ -18,7 +18,7 @@ package android.platform.test.helpers.common.test;
 
 import android.os.Bundle;
 import android.platform.test.helpers.HelperManager;
-import android.platform.test.helpers.AbstractStandardAppHelper;
+import android.platform.test.helpers.IStandardAppHelper;
 import android.platform.test.helpers.listeners.FailureTestWatcher;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.uiautomator.UiDevice;
@@ -28,6 +28,7 @@ import android.util.Log;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
@@ -42,7 +43,7 @@ import com.android.permissionutils.GrantPermissionUtil;
  *
  * @param T the helper interface under test.
  */
-public abstract class HelperTest<T extends AbstractStandardAppHelper> {
+public abstract class HelperTest<T extends IStandardAppHelper> {
     private static final String LOG_TAG = HelperTest.class.getSimpleName();
     private static final String SKIP_INIT_PARAM = "skip-init";
 
@@ -65,8 +66,12 @@ public abstract class HelperTest<T extends AbstractStandardAppHelper> {
     protected UiDevice mDevice;
     protected T mHelper;
 
+    /**
+     * Set up the target application before each test case starts.
+     */
     @Before
-    public <T> void setUp() {
+    public void setUp() {
+        // Initialize each application once on the first open unless skipped.
         if (!mInitMap.containsKey(getHelperClass()) &&
                 !"true".equals(getArguments().get(SKIP_INIT_PARAM))) {
             initialize();
@@ -76,23 +81,33 @@ public abstract class HelperTest<T extends AbstractStandardAppHelper> {
         openApp();
     }
 
-    public void initialize() { }
-
+    /**
+     * Tear down the target application after each test case completes.
+     */
     @After
     public void tearDown() {
         exitApp();
     }
 
     /**
-     * Reset the target application by clearing user data and re-granting runtime permissions.
+     * An empty test that ensures setup and initialization work properly.
      */
-    public void resetApp() {
-        // Clear the application's state.
-        PackageHelper.getInstance(InstrumentationRegistry.getInstrumentation())
-                .cleanPackage(getHelper().getPackage());
-        // Re-grant cleared runtime permissions.
-        GrantPermissionUtil.grantAllPermissions(InstrumentationRegistry.getContext());
+    @Test
+    public void testDismissDialogs() { }
+
+    /**
+     * Initialize the target application once before the test suite starts.
+     */
+    public void initialize() {
+        getHelper().open();
+        getHelper().dismissInitialDialogs();
+        getHelper().exit();
     }
+
+    /**
+     * Reset the target application.
+     */
+    public void resetApp() { }
 
     /**
      * Open the target application.
@@ -111,7 +126,7 @@ public abstract class HelperTest<T extends AbstractStandardAppHelper> {
     }
 
     /**
-     * @return the connected @{code UiDevice}
+     * @return the connected {@link UiDevice}
      */
     public UiDevice getDevice() {
         if (mDevice == null) {
@@ -122,7 +137,7 @@ public abstract class HelperTest<T extends AbstractStandardAppHelper> {
     }
 
     /**
-     * @return the @{code Bundle} of args
+     * @return the {@link Bundle} of arguments
      */
     public Bundle getArguments() {
         return InstrumentationRegistry.getArguments();

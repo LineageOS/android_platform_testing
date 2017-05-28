@@ -18,10 +18,9 @@ package android.platform.test.helpers.tests;
 
 import android.os.RemoteException;
 import android.platform.test.helpers.common.test.HelperTest;
-import android.platform.test.helpers.AbstractStandardAppHelper;
+import android.platform.test.helpers.IStandardAppHelper;
 
-public abstract class HandheldHelperTest<T extends AbstractStandardAppHelper>
-        extends HelperTest<T> {
+public abstract class HandheldHelperTest<T extends IStandardAppHelper> extends HelperTest<T> {
     @Override
     public void initialize() {
         try {

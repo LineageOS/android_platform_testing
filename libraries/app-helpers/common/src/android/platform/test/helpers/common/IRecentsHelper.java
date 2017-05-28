@@ -18,7 +18,7 @@ package android.platform.test.helpers;
 
 import android.support.test.uiautomator.Direction;
 
-public interface IRecentsHelper {
+public interface IRecentsHelper extends IStandardAppHelper {
     /**
      * Setup expectations: "Recents" is open.
      * <p>

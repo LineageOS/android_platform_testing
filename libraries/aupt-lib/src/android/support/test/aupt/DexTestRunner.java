@@ -18,6 +18,7 @@ package android.support.test.aupt;
 
 import android.app.Instrumentation;
 import android.test.AndroidTestRunner;
+import android.util.Log;
 
 import dalvik.system.DexClassLoader;
 
@@ -60,7 +61,8 @@ class DexTestRunner extends AndroidTestRunner {
     /* Private fields */
     private final List<TestListener> mTestListeners = new ArrayList<>();
     private final DexClassLoader mLoader;
-    private final long mTimeoutMillis;
+    private final long mTestTimeoutMillis;
+    private final long mSuiteTimeoutMillis;
 
     /* TestRunner State */
     protected TestResult mTestResult = new TestResult();
@@ -68,6 +70,7 @@ class DexTestRunner extends AndroidTestRunner {
     protected String mTestClassName;
     protected Instrumentation mInstrumentation;
     protected Scheduler mScheduler;
+    protected long mSuiteEndTime;
 
     /** A temporary ExecutorService to manage running the current test. */
     private ExecutorService mExecutorService;
@@ -80,13 +83,15 @@ class DexTestRunner extends AndroidTestRunner {
             Instrumentation instrumentation,
             Scheduler scheduler,
             List<String> jars,
-            long testTimeoutMillis) {
+            long testTimeoutMillis,
+            long suiteTimeoutMillis) {
         super();
 
         mInstrumentation = instrumentation;
         mScheduler = scheduler;
         mLoader = makeLoader(jars);
-        mTimeoutMillis = testTimeoutMillis;
+        mTestTimeoutMillis = testTimeoutMillis;
+        mSuiteTimeoutMillis = suiteTimeoutMillis;
     }
 
     /* Main methods */
@@ -99,8 +104,16 @@ class DexTestRunner extends AndroidTestRunner {
     @Override
     public synchronized void runTest(final TestResult testResult) {
         mTestResult = testResult;
+        mSuiteEndTime = System.currentTimeMillis() + mSuiteTimeoutMillis;
 
         for (final TestCase testCase : mScheduler.apply(mTestCases)) {
+            // Timeout the suite if we've passed the end time.
+            if (mSuiteTimeoutMillis != 0 && System.currentTimeMillis() > mSuiteEndTime) {
+                Log.w(LOG_TAG, String.format("Ending suite after %d mins running.",
+                        TimeUnit.MILLISECONDS.toMinutes(mSuiteTimeoutMillis)));
+                break;
+            }
+
             mExecutorService = Executors.newSingleThreadExecutor();
             mTestCase = testCase;
 
@@ -119,7 +132,7 @@ class DexTestRunner extends AndroidTestRunner {
 
             try {
                 // Run our test-running thread and wait on it.
-                result.get(mTimeoutMillis, TimeUnit.MILLISECONDS);
+                result.get(mTestTimeoutMillis, TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
                 killTest(e);
             } catch (ExecutionException e) {
