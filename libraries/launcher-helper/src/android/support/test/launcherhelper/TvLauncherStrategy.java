@@ -284,7 +284,11 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
         while (attempts++ < maxScrollAttempts) {
             focused = mDevice.wait(Until.findObject(By.focused(true)), SHORT_WAIT_TIME);
             expected = mDevice.wait(Until.findObject(appSelector), SHORT_WAIT_TIME);
-            if (focused.getVisibleCenter().equals(expected.getVisibleCenter())) {
+
+            if (expected == null) {
+                mDPadUtil.pressDPadDown();
+                continue;
+            } else if (focused.getVisibleCenter().equals(expected.getVisibleCenter())) {
                 // The app icon is on the screen, and selected.
                 Log.i(LOG_TAG, String.format("The app %s is selected", packageName));
                 break;

@@ -54,5 +54,4 @@ instrumentation_tests := \
     TeleServiceTests \
     SettingsProviderTest \
     StorageManagerUnitTests \
-    SettingsTests \
-    ContactsTests
+    SettingsTests
