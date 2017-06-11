@@ -24,9 +24,7 @@ public abstract class HandheldHelperTest<T extends IStandardAppHelper> extends H
     @Override
     public void initialize() {
         try {
-            if (!getDevice().isNaturalOrientation()) {
-                getDevice().setOrientationNatural();
-            }
+            getDevice().setOrientationNatural();
         } catch (RemoteException e) {
             throw new RuntimeException("Could not set orientation.", e);
         }

@@ -99,9 +99,9 @@ public abstract class HelperTest<T extends IStandardAppHelper> {
      * Initialize the target application once before the test suite starts.
      */
     public void initialize() {
-        getHelper().open();
+        openApp();
         getHelper().dismissInitialDialogs();
-        getHelper().exit();
+        exitApp();
     }
 
     /**

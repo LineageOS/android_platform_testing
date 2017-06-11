@@ -319,13 +319,6 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
                         "Failed to navigate to the app icon on screen: " + packageName);
             }
         }
-        // The app icon is already found and focused. Then wait for it to open.
-        BySelector appMain = By.pkg(packageName).depth(0);
-        mDPadUtil.pressDPadCenter();
-        if (!mDevice.wait(Until.hasObject(appMain), SHORT_WAIT_TIME)) {
-            Log.w(LOG_TAG, "no new window detected after app launch attempt.");
-            return null;
-        }
         return expected;
     }
 
@@ -358,24 +351,14 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
         // The app icon is already found and focused. Then wait for it to open.
         long ready = SystemClock.uptimeMillis();
         mDPadUtil.pressDPadCenter();
-        if (!mDevice.wait(Until.hasObject(By.pkg(packageName).depth(0)), APP_LAUNCH_TIMEOUT)) {
-            Log.w(LOG_TAG, "no new window detected after app launch attempt.");
-            return ILauncherStrategy.LAUNCH_FAILED_TIMESTAMP;
-        }
-        mDevice.waitForIdle();
         if (packageName != null) {
-            Log.w(LOG_TAG, String.format(
+            if (!mDevice.wait(Until.hasObject(By.pkg(packageName).depth(0)), APP_LAUNCH_TIMEOUT)) {
+                Log.w(LOG_TAG, String.format(
                     "No UI element with package name %s detected.", packageName));
-            boolean success = mDevice.wait(Until.hasObject(
-                    By.pkg(packageName).depth(0)), APP_LAUNCH_TIMEOUT);
-            if (success) {
-                return ready;
-            } else {
                 return ILauncherStrategy.LAUNCH_FAILED_TIMESTAMP;
             }
-        } else {
-            return ready;
         }
+        return ready;
     }
 
     protected boolean isTopRowSelected() {

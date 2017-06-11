@@ -43,5 +43,4 @@ public abstract class AbstractAutoUiProviderHelper extends AbstractStandardAppHe
      * This method is used to close drawer in different applications like Dialer and Media.
      */
     public abstract void closeDrawer();
-
 }
