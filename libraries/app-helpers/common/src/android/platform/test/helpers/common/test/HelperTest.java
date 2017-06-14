@@ -22,7 +22,6 @@ import android.platform.test.helpers.IStandardAppHelper;
 import android.platform.test.helpers.listeners.FailureTestWatcher;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.uiautomator.UiDevice;
-import android.system.helpers.PackageHelper;
 import android.util.Log;
 
 import org.junit.After;

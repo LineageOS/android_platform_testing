@@ -17,7 +17,7 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := app-helpers-common
-LOCAL_STATIC_JAVA_LIBRARIES := app-helpers-base system-helpers
+LOCAL_STATIC_JAVA_LIBRARIES := app-helpers-base
 LOCAL_JAVA_LIBRARIES := ub-uiautomator android-support-test permission-utils-lib launcher-helper-lib
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
 
