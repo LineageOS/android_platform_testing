@@ -77,3 +77,19 @@ native_tests := \
     wifilogd_unit_test \
     ziparchive-tests \
     SurfaceFlinger_test
+
+# Android Things specific tests
+ifeq ($(PRODUCT_IOT),true)
+
+native_tests += \
+    audio_userdriver_test \
+    crash_reporter_tests \
+    libandroidthings_pio_tests \
+    libbrillo_test \
+    libchrome_test \
+    libusersensors_binder_test \
+    peripheralman_unittests \
+    sensors_userdriver_test \
+    userinputdriver_test
+
+endif  # PRODUCT_IOT == true

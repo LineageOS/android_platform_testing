@@ -23,8 +23,9 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
     ub-uiautomator \
     ub-janktesthelper \
     launcher-helper-lib \
-    legacy-android-test \
     junit
+
+LOCAL_JAVA_LIBRARIES := legacy-android-test
 
 LOCAL_SDK_VERSION := current
 

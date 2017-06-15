@@ -55,3 +55,13 @@ instrumentation_tests := \
     SettingsProviderTest \
     StorageManagerUnitTests \
     SettingsTests
+
+# Android Things specific tests
+ifeq ($(PRODUCT_IOT),true)
+
+instrumentation_tests += \
+    AndroidThingsTests \
+    IoTLauncherTests \
+    WifiSetupUnitTests
+
+endif  # PRODUCT_IOT == true
