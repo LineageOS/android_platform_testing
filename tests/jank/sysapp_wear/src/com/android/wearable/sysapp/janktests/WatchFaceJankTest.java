@@ -78,6 +78,7 @@ public class WatchFaceJankTest extends JankTestBase {
 
     public void removeAllButOneWatchFace(Bundle metrics) {
         mWfHelper.removeAllButOneWatchFace();
+        super.afterTest(metrics);
     }
 
     public void prepareForPullDownQuickSettings() throws UiObjectNotFoundException {
