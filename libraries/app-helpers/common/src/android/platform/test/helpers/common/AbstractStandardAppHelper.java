@@ -65,6 +65,7 @@ public abstract class AbstractStandardAppHelper implements IStandardAppHelper {
         String id = getLauncherName();
         if (!mDevice.hasObject(By.pkg(pkg).depth(0))) {
             mLauncherStrategy.launch(id, pkg);
+            Log.i(LOG_TAG, "Launched package: id=" + id + ", pkg=" + pkg);
         }
     }
 
