@@ -191,13 +191,25 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
     }
 
     /**
+     * Returns a {@link BySelector} describing a given favorite app
+     */
+    public BySelector getFavoriteAppSelector(String appName) {
+        return By.res(getSupportedLauncherPackage(), "favorite_app_banner").text(appName);
+    }
+
+    /**
+     * Returns a {@link BySelector} describing a given app in Apps View
+     */
+    public BySelector getAppInAppsViewSelector(String appName) {
+        return By.res(getSupportedLauncherPackage(), "app_title").text(appName);
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
     public long launch(String appName, String packageName) {
-        BySelector appSelector = By.res(getSupportedLauncherPackage(),
-                "app_banner_image").desc(appName);
-        return launchApp(this, appSelector, packageName, isGame(packageName));
+        return launchApp(this, appName, packageName, isGame(packageName));
     }
 
     /**
@@ -322,7 +334,26 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
         return expected;
     }
 
-    protected long launchApp(ILauncherStrategy launcherStrategy, BySelector appSelector,
+    /**
+     * Select the given app in All Apps activity in zigzag manner.
+     * When the All Apps opens, the focus is always at the top left.
+     * Search from left to right, and down to the next row, from right to left, and
+     * down to the next row like a zigzag pattern until it founds a given app.
+     */
+    public UiObject2 selectAppInAllAppsZigZag(BySelector appSelector, String packageName) {
+        Direction direction = Direction.RIGHT;
+        UiObject2 app = select(appSelector, direction, UI_TRANSITION_WAIT_TIME);
+        while (app == null && move(Direction.DOWN)) {
+            direction = Direction.reverse(direction);
+            app = select(appSelector, direction, UI_TRANSITION_WAIT_TIME);
+        }
+        if (app != null) {
+            Log.i(LOG_TAG, String.format("The app %s is selected", packageName));
+        }
+        return app;
+    }
+
+    protected long launchApp(ILauncherStrategy launcherStrategy, String appName,
             String packageName, boolean isGame) {
         unlockDeviceIfAsleep();
 
@@ -335,13 +366,17 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
         launcherStrategy.open();
         selectAppsRow();
 
-        // Search for the app in the Apps row first.
+        // Search for the app in the Favorite Apps row first.
         // If not exists, open the 'All Apps' and search for the app there
         UiObject2 app = null;
-        if (mDevice.hasObject(appSelector)) {
-            app = selectBidirect(By.focused(true).hasDescendant(appSelector), Direction.RIGHT);
+        BySelector favAppSelector = getFavoriteAppSelector(appName);
+        if (mDevice.hasObject(favAppSelector)) {
+            app = selectBidirect(By.focused(true).hasDescendant(favAppSelector), Direction.RIGHT);
         } else {
-            app = selectAppInAllApps(appSelector, packageName);
+            openAllApps(true);
+            // Find app in Apps View in zigzag mode with app selector for Apps View
+            // because the app title no longer appears until focused.
+            app = selectAppInAllAppsZigZag(getAppInAppsViewSelector(appName), packageName);
         }
         if (app == null) {
             throw new RuntimeException(
@@ -477,6 +512,36 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
             object = select(selector, Direction.reverse(direction), UI_TRANSITION_WAIT_TIME);
         }
         return object;
+    }
+
+    /**
+     * Simulate a move pressing a key code.
+     * Return true if a focus is shifted on TV UI, otherwise false.
+     */
+    public boolean move(Direction direction) {
+        int keyCode = KeyEvent.KEYCODE_UNKNOWN;
+        switch (direction) {
+            case LEFT:
+                keyCode = KeyEvent.KEYCODE_DPAD_LEFT;
+                break;
+            case RIGHT:
+                keyCode = KeyEvent.KEYCODE_DPAD_RIGHT;
+                break;
+            case UP:
+                keyCode = KeyEvent.KEYCODE_DPAD_UP;
+                break;
+            case DOWN:
+                keyCode = KeyEvent.KEYCODE_DPAD_DOWN;
+                break;
+            default:
+                throw new RuntimeException(String.format("This direction %s is not supported.",
+                    direction));
+        }
+        UiObject2 focus = mDevice.wait(Until.findObject(By.focused(true)),
+                UI_TRANSITION_WAIT_TIME);
+        mDPadUtil.pressKeyCodeAndWait(keyCode);
+        return !focus.equals(mDevice.wait(Until.findObject(By.focused(true)),
+                UI_TRANSITION_WAIT_TIME));
     }
 
 

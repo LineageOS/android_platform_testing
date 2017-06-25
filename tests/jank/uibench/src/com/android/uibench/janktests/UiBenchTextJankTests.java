@@ -60,11 +60,12 @@ public class UiBenchTextJankTests extends JankTestBase {
     }
 
     // Measure jank metrics for EditText Typing
-    @JankTest(beforeTest = "openEditTextTyping", expectedFrames = EXPECTED_FRAMES)
-    @GfxMonitor(processName = PACKAGE_NAME)
-    public void testEditTextTyping() {
-        SystemClock.sleep(UiBenchJankTestsHelper.FULL_TEST_DURATION);
-    }
+    // Reenable the test after b/62917134 is fixed
+    // @JankTest(beforeTest = "openEditTextTyping", expectedFrames = EXPECTED_FRAMES)
+    // @GfxMonitor(processName = PACKAGE_NAME)
+    // public void testEditTextTyping() {
+    //    SystemClock.sleep(UiBenchJankTestsHelper.FULL_TEST_DURATION);
+    //}
 
     // Open Layout Cache High Hitrate
     public void openLayoutCacheHighHitrate() {

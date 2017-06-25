@@ -19,12 +19,7 @@ package android.platform.test.helpers;
 import android.app.Instrumentation;
 import android.support.test.uiautomator.Direction;
 
-public abstract class AbstractChromeHelper extends AbstractStandardAppHelper {
-
-    public AbstractChromeHelper(Instrumentation instr) {
-        super(instr);
-    }
-
+public interface IChromeHelper extends IStandardAppHelper {
     /**
      * Setup expectations: Chrome is open and on a standard page, i.e. a tab is open.
      *
