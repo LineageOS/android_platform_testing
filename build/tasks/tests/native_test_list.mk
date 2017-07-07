@@ -52,6 +52,7 @@ native_tests := \
     kernel-config-unit-tests \
     malloc_debug_unit_tests \
     memory_replay_tests \
+    memunreachable_test \
     minadbd_test \
     minikin_tests \
     mtp_ffs_handle_test \
