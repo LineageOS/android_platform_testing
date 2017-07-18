@@ -34,6 +34,9 @@ native_tests := \
     hello_world_test \
     hwui_unit_tests \
     init_tests \
+    installd_cache_test \
+    installd_service_test \
+    installd_utils_test \
     JniInvocation_test \
     libappfuse_test \
     libbase_test \
