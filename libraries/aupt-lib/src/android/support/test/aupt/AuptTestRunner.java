@@ -423,10 +423,9 @@ public class AuptTestRunner extends InstrumentationTestRunner {
 
             try {
                 MemHealthRecord.saveVerbose(mMemHealthRecords,
-                    mResultsDirectory + "memory-health.txt");
-
+                        new File(mResultsDirectory, "memory-health.txt").getPath());
                 MemHealthRecord.saveCsv(mMemHealthRecords,
-                    mResultsDirectory + "memory-health-details.txt");
+                        new File(mResultsDirectory, "memory-health-details.txt").getPath());
 
                 mMemHealthRecords.clear();
             } catch (IOException ioex) {
