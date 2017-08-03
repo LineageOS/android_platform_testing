@@ -45,7 +45,6 @@ instrumentation_tests := \
     EmergencyInfoTests \
     CalendarProviderTests \
     SettingsLibTests \
-    RetailDemoTests \
     RSTest \
     PrintSpoolerOutOfProcessTests \
     CellBroadcastReceiverUnitTests \
