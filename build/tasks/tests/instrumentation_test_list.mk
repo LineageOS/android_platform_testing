@@ -19,6 +19,7 @@ instrumentation_tests := \
     FrameworksCoreTests \
     FrameworksNetTests \
     FrameworksNotificationTests \
+    ConnTestApp \
     FrameworksServicesTests \
     FrameworksUtilTests \
     MtpDocumentsProviderTests \
