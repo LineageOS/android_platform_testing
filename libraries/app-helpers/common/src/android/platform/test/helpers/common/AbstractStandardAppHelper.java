@@ -238,23 +238,28 @@ public abstract class AbstractStandardAppHelper implements IStandardAppHelper {
 
 
     protected void checkElementWithIdExists(String packageStr, String id, long timeout) {
-        if (!mDevice.wait(Until.hasObject(By.res(packageStr, id)), timeout)){
-            throw new UnknownUiException(String.format(ERROR_NOT_FOUND,
-                    "with id", id, getPackage()));
+      if (!mDevice.wait(Until.hasObject(By.res(packageStr, id)), timeout)) {
+        throw new UnknownUiException(String.format(ERROR_NOT_FOUND, "with id", id, getPackage()));
         }
     }
 
     protected void checkElementWithTextExists(String text, long timeout) {
-        if (!mDevice.wait(Until.hasObject(By.text(text)), timeout)){
-            throw new UnknownUiException(
-                    String.format(ERROR_NOT_FOUND, "with text", text, getPackage()));
+      if (!mDevice.wait(Until.hasObject(By.text(text)), timeout)) {
+        throw new UnknownUiException(
+            String.format(ERROR_NOT_FOUND, "with text", text, getPackage()));
         }
     }
 
     protected void checkElementWithDescriptionExists(String description, long timeout) {
-        if (!mDevice.wait(Until.hasObject(By.desc(description)), timeout)){
-            throw new UnknownUiException(
-                    String.format(ERROR_NOT_FOUND, "with description", description, getPackage()));
-        }
+      if (!mDevice.wait(Until.hasObject(By.desc(description)), timeout)) {
+        throw new UnknownUiException(
+            String.format(ERROR_NOT_FOUND, "with description", description, getPackage()));
+      }
+    }
+
+    protected void checkIfElementChecked(UiObject2 element) {
+      if (!element.isChecked()) {
+        throw new UnknownUiException("Element " + element + " is not checked");
+      }
     }
 }
