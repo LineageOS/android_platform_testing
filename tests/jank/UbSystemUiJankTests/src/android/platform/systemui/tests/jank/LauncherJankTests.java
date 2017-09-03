@@ -117,7 +117,7 @@ public class LauncherJankTests extends JankTestBase {
     }
 
     public void openAllApps() throws UiObjectNotFoundException, IOException {
-        mLauncherStrategy.openAllApps(true);
+        mLauncherStrategy.openAllApps(false);
         TimeResultLogger.writeTimeStampLogStart(String.format("%s-%s",
                 getClass().getSimpleName(), getName()), TIMESTAMP_FILE);
     }
@@ -136,6 +136,7 @@ public class LauncherJankTests extends JankTestBase {
     @GfxMonitor(processName="#getLauncherPackage")
     public void testAllAppsContainerSwipe() {
         UiObject2 allApps = mDevice.findObject(mLauncherStrategy.getAllAppsSelector());
+        allApps.setGestureMargin(150);
         Direction dir = mLauncherStrategy.getAllAppsScrollDirection();
         for (int i = 0; i < INNER_LOOP * 2; i++) {
             allApps.fling(dir, FLING_SPEED);
