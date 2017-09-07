@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.test.filters.SmallTest;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -58,6 +59,7 @@ public class BatteryTerminatorTest {
      * Unit test the listener's stops on low battery.
      */
     @Test
+    @SmallTest
     public void testBatteryTerminator_low() throws Exception {
         when(mIntent.getIntExtra("level", -1)).thenReturn(25);
         mListener.testFinished(Description.EMPTY);
@@ -68,6 +70,7 @@ public class BatteryTerminatorTest {
      * Unit test the listener's does not stop on high battery.
      */
     @Test
+    @SmallTest
     public void testBatteryTerminator_high() throws Exception {
         when(mIntent.getIntExtra("level", -1)).thenReturn(75);
         mListener.testFinished(Description.EMPTY);

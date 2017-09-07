@@ -19,6 +19,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.when;
 
 import android.os.Bundle;
+import android.support.test.filters.SmallTest;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,6 +49,7 @@ public class ShuffleTest {
      * Unit test that shuffling with a specific seed is respected.
      */
     @Test
+    @SmallTest
     public void testShuffleSeedRespected()  {
         // Construct argument bundle.
         Bundle args = new Bundle();

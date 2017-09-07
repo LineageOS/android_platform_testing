@@ -17,6 +17,8 @@ package android.platform.longevity;
 
 import static org.junit.Assert.fail;
 
+import android.support.test.filters.SmallTest;
+
 import org.junit.Test;
 import org.junit.internal.builders.AllDefaultPossibilitiesBuilder;
 import org.junit.runner.RunWith;
@@ -33,6 +35,7 @@ public class LongevitySuiteTest {
      * Unit test that the {@link SuiteClasses} annotation is required.
      */
     @Test
+    @SmallTest
     public void testAnnotationRequired() {
         try {
             new LongevitySuite(NoSuiteClassesSuite.class, new AllDefaultPossibilitiesBuilder(true));

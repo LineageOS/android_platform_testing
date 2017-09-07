@@ -18,6 +18,8 @@ package android.platform.longevity.listeners;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import android.support.test.filters.SmallTest;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.Description;
@@ -47,6 +49,7 @@ public class ErrorTerminatorTest {
      * Unit test the listener's kill logic.
      */
     @Test
+    @SmallTest
     public void testErrorTerminator_errors() throws Exception {
         mListener.testFailure(new Failure(Description.EMPTY, new Throwable()));
         verify(mNotifier).pleaseStop();
@@ -56,6 +59,7 @@ public class ErrorTerminatorTest {
      * Unit test the listener's kill logic.
      */
     @Test
+    @SmallTest
     public void testErrorTerminator_none() throws Exception {
         mListener.testStarted(Description.EMPTY);
         mListener.testFinished(Description.EMPTY);

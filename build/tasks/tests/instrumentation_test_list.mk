@@ -15,6 +15,7 @@
 instrumentation_tests := \
     HelloWorldTests \
     crashcollector \
+    LongevityLibTests \
     ManagedProvisioningTests \
     FrameworksCoreTests \
     FrameworksNetTests \

@@ -21,6 +21,7 @@ import static org.mockito.Mockito.verify;
 
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.support.test.filters.SmallTest;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -51,6 +52,7 @@ public class TimeoutTerminatorTest {
      * Unit test the listener's kill logic.
      */
     @Test
+    @SmallTest
     public void testTimeoutTerminator_pass() throws Exception {
         mListener.testStarted(Description.EMPTY);
         SystemClock.sleep(10L);
@@ -61,6 +63,7 @@ public class TimeoutTerminatorTest {
      * Unit test the listener's kill logic.
      */
     @Test
+    @SmallTest
     public void testTimeoutTerminator_timeout() throws Exception {
         mListener.testStarted(Description.EMPTY);
         SystemClock.sleep(60L);
