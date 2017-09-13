@@ -25,7 +25,7 @@ import android.support.test.uiautomator.UiDevice;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 
-import static com.android.uibench.janktests.UiBenchJankTestsHelper.EXPECTED_FRAMES;
+import static com.android.uibench.janktests.UiBenchJankTestsHelper.SHORT_EXPECTED_FRAMES;
 import static com.android.uibench.janktests.UiBenchJankTestsHelper.PACKAGE_NAME;
 
 import java.lang.annotation.ElementType;
@@ -125,7 +125,7 @@ public class UiBenchLeanbackJankTests extends JankTestBase {
     /**
      * Vertically scroll BrowseFragment in the fast lane
      */
-    @JankTest(expectedFrames = EXPECTED_FRAMES)
+    @JankTest(expectedFrames = SHORT_EXPECTED_FRAMES)
     @Option(activity = "leanback.BrowseActivity")
     @GfxMonitor(processName = PACKAGE_NAME)
     @GfxFrameStatsMonitor(processName = PACKAGE_NAME)
@@ -136,7 +136,7 @@ public class UiBenchLeanbackJankTests extends JankTestBase {
     /**
      * Vertically scroll BrowseFragment in the content (fast lane closed)
      */
-    @JankTest(expectedFrames = EXPECTED_FRAMES)
+    @JankTest(expectedFrames = SHORT_EXPECTED_FRAMES)
     @Option(activity = "leanback.BrowseActivity", postLaunch = "focusToBrowseContent")
     @GfxMonitor(processName = PACKAGE_NAME)
     @GfxFrameStatsMonitor(processName = PACKAGE_NAME)
@@ -148,7 +148,7 @@ public class UiBenchLeanbackJankTests extends JankTestBase {
      * Vertically scroll BrowseFragment in the fast lane
      * option: no bitmap upload
      */
-    @JankTest(expectedFrames = EXPECTED_FRAMES)
+    @JankTest(expectedFrames = SHORT_EXPECTED_FRAMES)
     @Option(activity = "leanback.BrowseActivity", extras = "noBitmapUpload")
     @GfxMonitor(processName = PACKAGE_NAME)
     @GfxFrameStatsMonitor(processName = PACKAGE_NAME)
@@ -160,7 +160,7 @@ public class UiBenchLeanbackJankTests extends JankTestBase {
      * Vertically scroll BrowseFragment in the content (fast lane closed)
      * option: no bitmap upload
      */
-    @JankTest(expectedFrames = EXPECTED_FRAMES)
+    @JankTest(expectedFrames = SHORT_EXPECTED_FRAMES)
     @Option(activity = "leanback.BrowseActivity", extras = "noBitmapUpload",
             postLaunch = "focusToBrowseContent")
     @GfxMonitor(processName = PACKAGE_NAME)

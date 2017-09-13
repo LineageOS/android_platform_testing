@@ -126,7 +126,7 @@ public class NotificationHelper {
 
     public boolean removeScreenLock(int pin, String mode) throws Exception {
         navigateToScreenLock();
-        if (new UiObject(new UiSelector().text("Confirm your PIN")).exists()) {
+        if (new UiObject(new UiSelector().text("Re-enter your PIN")).exists()) {
             UiObject pinField = new UiObject(new UiSelector().className(EditText.class.getName()));
             pinField.setText(String.format("%04d", pin));
             mDevice.pressEnter();
