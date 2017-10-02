@@ -18,7 +18,9 @@ package android.support.test.launcherhelper;
 
 import android.app.Instrumentation;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.Point;
 import android.os.RemoteException;
 import android.os.SystemClock;
@@ -43,8 +45,10 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
     private static final String LOG_TAG = TvLauncherStrategy.class.getSimpleName();
     private static final String PACKAGE_LAUNCHER = "com.google.android.tvlauncher";
     private static final String PACKAGE_SETTINGS = "com.android.tv.settings";
-
     private static final String CHANNEL_TITLE_WATCH_NEXT = "Watch Next";
+
+    // Build version
+    private static final int BUILD_INT_BANDGAP = 1010100000;
 
     // Wait time
     private static final int UI_APP_LAUNCH_WAIT_TIME_MS = 10000;
@@ -215,6 +219,31 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
     }
 
     /**
+     * Get the launcher's version code.
+     * @return the version code. -1 if the launcher package is not found.
+     */
+    public int getVersionCode() {
+        String pkg = getSupportedLauncherPackage();
+        if (null == pkg || pkg.isEmpty()) {
+            throw new RuntimeException("Can't find version of empty package");
+        }
+        if (mInstrumentation == null) {
+            Log.w(LOG_TAG, "Instrumentation is null. setInstrumentation should be called "
+                    + "to get the version code");
+            return -1;
+        }
+        PackageManager pm = mInstrumentation.getContext().getPackageManager();
+        PackageInfo pInfo = null;
+        try {
+            pInfo = pm.getPackageInfo(pkg, 0);
+            return pInfo.versionCode;
+        } catch (NameNotFoundException e) {
+            Log.w(LOG_TAG, String.format("package name is not found: %s", pkg));
+            return -1;
+        }
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -278,6 +307,10 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
      * Returns a {@link BySelector} describing a given app in Apps View
      */
     public BySelector getAppInAppsViewSelector(String appName) {
+        if (getVersionCode() > BUILD_INT_BANDGAP) {
+            // bandgap or higher
+            return By.res(getSupportedLauncherPackage(), "banner_image").desc(appName);
+        }
         return By.res(getSupportedLauncherPackage(), "app_title").text(appName);
     }
 
@@ -553,11 +586,11 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
      * down to the next row like a zigzag pattern until the app is found.
      */
     protected UiObject2 selectAppInAllApps(BySelector appSelector, String packageName) {
-        openAllApps(true);
+        Assert.assertTrue(mDevice.hasObject(getAllAppsSelector()));
 
         // Assume that the focus always starts at the top left of the Apps view.
         final int maxScrollAttempts = 20;
-        final int margin = 10;
+        final int margin = 30;
         int attempts = 0;
         UiObject2 focused = null;
         UiObject2 expected = null;
@@ -568,8 +601,8 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
             if (expected == null) {
                 mDPadUtil.pressDPadDown();
                 continue;
-            } else if (focused.getVisibleCenter().equals(expected.getVisibleCenter())) {
-                // The app icon is on the screen, and selected.
+            } else if (focused.hasObject(appSelector)) {
+                // The app icon is selected.
                 Log.i(LOG_TAG, String.format("The app %s is selected", packageName));
                 break;
             } else {
@@ -579,6 +612,7 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
                 Point targetPosition = expected.getVisibleCenter();
                 int dx = targetPosition.x - currentPosition.x;
                 int dy = targetPosition.y - currentPosition.y;
+                Log.d(LOG_TAG, String.format("selectAppInAllApps: [dx,dx][%d,%d]", dx, dy));
                 if (dy > margin) {
                     mDPadUtil.pressDPadDown();
                     continue;
@@ -608,8 +642,8 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
      * Search from left to right, and down to the next row, from right to left, and
      * down to the next row like a zigzag pattern until it founds a given app.
      */
-    public UiObject2 selectAppInAllAppsZigZag(BySelector appSelector, String packageName) {
-        openAllApps(true);
+    protected UiObject2 selectAppInAllAppsZigZag(BySelector appSelector, String packageName) {
+        Assert.assertTrue(mDevice.hasObject(getAllAppsSelector()));
         Direction direction = Direction.RIGHT;
         UiObject2 app = select(appSelector, direction, UI_TRANSITION_WAIT_TIME_MS);
         while (app == null && move(Direction.DOWN)) {
@@ -623,13 +657,31 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
     }
 
     /**
+     * Select the given app in All Apps using the versioned BySelector for the app
+     */
+    public UiObject2 selectAppInAllApps(String appName, String packageName) {
+        UiObject2 app = null;
+        int versionCode = getVersionCode();
+        if (versionCode > BUILD_INT_BANDGAP) {
+            // bandgap or higher
+            Log.i(LOG_TAG,
+                    String.format("selectAppInAllApps: app banner has app name [versionCode]%d",
+                            versionCode));
+            app = selectAppInAllApps(getAppInAppsViewSelector(appName), packageName);
+        } else {
+            app = selectAppInAllAppsZigZag(getAppInAppsViewSelector(appName), packageName);
+        }
+        return app;
+    }
+
+    /**
      * Launch the given app in the Apps view.
      */
     public boolean launchAppInAppsView(String appName, String packageName) {
         Log.d(LOG_TAG, String.format("launching in apps view [appName]%s [packageName]%s",
                 appName, packageName));
         openAllApps(true);
-        UiObject2 app = selectAppInAllAppsZigZag(getAppInAppsViewSelector(appName), packageName);
+        UiObject2 app = selectAppInAllApps(appName, packageName);
         if (app == null) {
             throw new RuntimeException(
                 "Failed to navigate to the app icon in the Apps view: " + packageName);
@@ -667,9 +719,7 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
             app = selectBidirect(By.copy(favAppSelector).focused(true), Direction.RIGHT);
         } else {
             openAllApps(true);
-            // Find app in Apps View in zigzag mode with app selector for Apps View
-            // because the app title no longer appears until focused.
-            app = selectAppInAllAppsZigZag(getAppInAppsViewSelector(appName), packageName);
+            app = selectAppInAllApps(appName, packageName);
         }
         if (app == null) {
             throw new RuntimeException(
@@ -739,7 +789,7 @@ public class TvLauncherStrategy implements ILeanbackLauncherStrategy {
                 isGame = (appInfo.metaData != null && appInfo.metaData.getBoolean("isGame", false))
                         || ((appInfo.flags & ApplicationInfo.FLAG_IS_GAME) != 0);
                 Log.i(LOG_TAG, String.format("The package %s isGame: %b", packageName, isGame));
-            } catch (PackageManager.NameNotFoundException e) {
+            } catch (NameNotFoundException e) {
                 Log.w(LOG_TAG,
                         String.format("No package found: %s, error:%s", packageName, e.toString()));
                 return false;
