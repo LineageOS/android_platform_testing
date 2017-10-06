@@ -204,7 +204,11 @@ public class AuptTestRunner extends InstrumentationTestRunner {
                     injectInstrumentation(test);
                 }
 
-                super.runTest(result);
+                try {
+                    super.runTest(result);
+                } finally {
+                    mDataCollector.stop();
+                }
             }
         };
 
@@ -226,11 +230,6 @@ public class AuptTestRunner extends InstrumentationTestRunner {
 
         // Start the test
         super.onCreate(params);
-    }
-
-    @Override
-    public void onDestroy() {
-        mDataCollector.stop();
     }
 
     /* Option-parsing helpers */
