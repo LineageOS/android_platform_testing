@@ -41,7 +41,6 @@ instrumentation_tests := \
     DownloadAppFunctionalTests \
     NotificationFunctionalTests \
     DownloadProviderTests \
-    EmergencyInfoTests \
     CalendarProviderTests \
     SettingsLibTests \
     RSTest \
