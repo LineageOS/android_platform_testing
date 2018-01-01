@@ -18,8 +18,12 @@ instrumentation_metric_tests := \
     DocumentsUIPerfTests \
     DocumentsUIAppPerfTests \
     MtpDocumentsProviderPerfTests \
-    perf-setup.sh \
     SurfaceComposition \
     RsBlasBenchmark \
     ImageProcessingJB \
     MultiUserPerfTests
+
+ifneq ($(strip $(BOARD_PERFSETUP_SCRIPT)),)
+instrumentation_metric_tests += \
+    perf-setup.sh
+endif

@@ -21,5 +21,9 @@ native_metric_tests := \
     libjavacore-benchmarks \
     minikin_perftests \
     mmapPerf \
-    netd_benchmark \
+    netd_benchmark
+
+ifneq ($(strip $(BOARD_PERFSETUP_SCRIPT)),)
+native_metric_tests += \
     perf-setup.sh
+endif
