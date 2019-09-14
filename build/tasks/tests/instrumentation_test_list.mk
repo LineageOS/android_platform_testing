@@ -70,8 +70,6 @@ instrumentation_tests := \
     SettingsUITests \
     ExtServicesUnitTests\
     NexusLauncherOutOfProcTests\
-    NexusLauncherDebug\
-    NexusLauncherTests\
     FrameworksNetSmokeTests\
 
 
