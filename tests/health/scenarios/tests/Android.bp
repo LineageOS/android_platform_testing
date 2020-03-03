@@ -50,6 +50,7 @@ java_library_static {
         "guava",
         "longevity-device-lib",
         "microbenchmark-device-lib",
+        "platform-test-options",
         "platform-test-rules",
     ],
 }

@@ -338,11 +338,11 @@ public class AutoLauncherStrategy implements IAutoLauncherStrategy {
                 mDevice.waitForIdle();
             }
 
-            UiObject2 app = mDevice.findObject(appSelector);
+            UiObject2 app = mDevice.wait(Until.findObject(appSelector), UI_WAIT_TIMEOUT);
             while (app == null && down.isEnabled()) {
                 down.click();
                 mDevice.waitForIdle();
-                app = mDevice.findObject(appSelector);
+                app = mDevice.wait(Until.findObject(appSelector), UI_WAIT_TIMEOUT);
             }
             return app;
         } else {

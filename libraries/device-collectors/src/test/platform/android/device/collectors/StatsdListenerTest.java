@@ -17,6 +17,7 @@ package android.device.collectors;
 
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -96,6 +97,9 @@ public class StatsdListenerTest {
         // Stub calls to permission APIs.
         doNothing().when(mListener).adoptShellPermissionIdentity();
         doNothing().when(mListener).dropShellPermissionIdentity();
+        // Stub calls to StatsLog APIs.
+        doReturn(true).when(mListener).logStart(anyInt());
+        doReturn(true).when(mListener).logStop(anyInt());
         // Stub file I/O.
         doAnswer(invocation -> invocation.getArgument(0)).when(mListener).writeToFile(any(), any());
         // Stub randome UUID generation.
@@ -116,8 +120,10 @@ public class StatsdListenerTest {
         mListener.onTestRunStart(runData, description);
         verify(mListener, times(1)).addStatsConfig(eq(CONFIG_ID_1), eq(CONFIG_1.toByteArray()));
         verify(mListener, times(1)).addStatsConfig(eq(CONFIG_ID_2), eq(CONFIG_2.toByteArray()));
+        verify(mListener, times(1)).logStart(eq(StatsdListener.RUN_EVENT_LABEL));
 
         mListener.onTestRunEnd(runData, new Result());
+        verify(mListener, times(1)).logStop(eq(StatsdListener.RUN_EVENT_LABEL));
         verify(mListener, times(1)).getStatsReports(eq(CONFIG_ID_1));
         verify(mListener, times(1)).getStatsReports(eq(CONFIG_ID_2));
         verify(mListener, times(1)).removeStatsConfig(eq(CONFIG_ID_1));
@@ -201,8 +207,10 @@ public class StatsdListenerTest {
         mListener.onTestStart(testData, description);
         verify(mListener, times(1)).addStatsConfig(eq(CONFIG_ID_1), eq(CONFIG_1.toByteArray()));
         verify(mListener, times(1)).addStatsConfig(eq(CONFIG_ID_2), eq(CONFIG_2.toByteArray()));
+        verify(mListener, times(1)).logStart(eq(StatsdListener.TEST_EVENT_LABEL));
 
         mListener.onTestEnd(testData, description);
+        verify(mListener, times(1)).logStop(eq(StatsdListener.TEST_EVENT_LABEL));
         verify(mListener, times(1)).getStatsReports(eq(CONFIG_ID_1));
         verify(mListener, times(1)).getStatsReports(eq(CONFIG_ID_2));
         verify(mListener, times(1)).removeStatsConfig(eq(CONFIG_ID_1));

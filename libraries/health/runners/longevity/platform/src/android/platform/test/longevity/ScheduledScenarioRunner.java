@@ -18,14 +18,23 @@ package android.platform.test.longevity;
 
 import static java.lang.Math.max;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
-import android.os.SystemClock;
+import android.os.Process;
 import android.platform.test.longevity.proto.Configuration.Scenario;
 import android.platform.test.longevity.proto.Configuration.Scenario.ExtraArg;
+import android.util.Log;
 import androidx.annotation.VisibleForTesting;
 import androidx.test.InstrumentationRegistry;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
@@ -38,12 +47,24 @@ import org.junit.runners.model.Statement;
 /**
  * A {@link BlockJUnit4ClassRunner} that runs a test class with a specified timeout and optionally
  * performs an idle before teardown (staying inside the app for Android CUJs).
+ *
+ * <p>TODO(b/146215435): Refactor to extends the index-based {@link ScenarioRunner}.
  */
 public class ScheduledScenarioRunner extends LongevityClassRunner {
-    @VisibleForTesting static final long ENDTIME_LEEWAY_MS = 3000;
+    // A leeway to ensure that the teardown steps in @After and @AfterClass has time to finish.
+    // Regardless of test passing (in which case teardown is considered in test timeout) or failing
+    // (in which case teardown happens outside the scope of the timeout).
+    // Please note that in most cases (when the CUJ does not time out) the actual cushion for
+    // teardown is double the value below, as a cushion needs to be created inside the timeout
+    // rule and also outside of it.
+    @VisibleForTesting static final long TEARDOWN_LEEWAY_MS = 2000;
+
+    private static final String LOG_TAG = ScheduledScenarioRunner.class.getSimpleName();
 
     private final Scenario mScenario;
     private final long mTotalTimeoutMs;
+    // Timeout after the teardown leeway is taken into account.
+    private final long mEnforcedTimeoutMs;
     private final boolean mShouldIdle;
     private final Bundle mArguments;
 
@@ -63,6 +84,9 @@ public class ScheduledScenarioRunner extends LongevityClassRunner {
         mScenario = scenario;
         // Ensure that the timeout is non-negative.
         mTotalTimeoutMs = max(timeout, 0);
+        // Ensure that the enforced timeout is non-negative. This cushion is built in so that the
+        // CUJ still has time for teardown steps when the test portion times out.
+        mEnforcedTimeoutMs = max(mTotalTimeoutMs - TEARDOWN_LEEWAY_MS, 0);
         mShouldIdle = shouldIdle;
         mArguments = arguments;
     }
@@ -71,7 +95,7 @@ public class ScheduledScenarioRunner extends LongevityClassRunner {
     protected List<TestRule> getTestRules(Object target) {
         List<TestRule> rules = super.getTestRules(target);
         // Ensure that the timeout rule has a non-negative timeout.
-        rules.add(0, Timeout.millis(max(mTotalTimeoutMs - ENDTIME_LEEWAY_MS, 0)));
+        rules.add(0, Timeout.millis(mEnforcedTimeoutMs));
         return rules;
     }
 
@@ -85,9 +109,9 @@ public class ScheduledScenarioRunner extends LongevityClassRunner {
                             // Run the underlying test and report exceptions.
                             statement.evaluate();
                         } finally {
-                            // If there is time left for idling (i.e. more than ENDTIME_LEEWAY_MS),
+                            // If there is time left for idling (i.e. more than TEARDOWN_LEEWAY_MS),
                             // and the scenario is set to stay in app, idle for the remainder of
-                            // its timeout window until ENDTIME_LEEWAY_MS before the start time of
+                            // its timeout window until TEARDOWN_LEEWAY_MS before the start time of
                             // the next scenario, before executing the scenario's @After methods.
                             // The above does not apply if current scenario is the last one, in
                             // which case the idle is never performed regardless of its after_test
@@ -96,8 +120,13 @@ public class ScheduledScenarioRunner extends LongevityClassRunner {
                                     && mScenario
                                             .getAfterTest()
                                             .equals(Scenario.AfterTest.STAY_IN_APP)) {
+                                // Subtract the teardown leeway so that teardown methods can finish
+                                // within the scope of the timeout rule.
                                 performIdleBeforeTeardown(
-                                        max(getTimeRemaining() - ENDTIME_LEEWAY_MS, 0));
+                                        max(
+                                                getTimeRemainingForTimeoutRule()
+                                                        - TEARDOWN_LEEWAY_MS,
+                                                0));
                             }
                         }
                     }
@@ -128,35 +157,101 @@ public class ScheduledScenarioRunner extends LongevityClassRunner {
                 InstrumentationRegistry.getInstrumentation(), mArguments);
         // If there are remaining scenarios, idle until the next one starts.
         if (mShouldIdle) {
-            performIdleBeforeNextScenario(getTimeRemaining());
+            performIdleBeforeNextScenario(getTimeRemainingForScenario());
         }
     }
 
-    /**
-     * Get the duration to idle after the current scenario. If the current scenario is the last one
-     * in the profile, returns 0.
-     */
-    private long getTimeRemaining() {
+    /** Get the remaining time within the current scenario. */
+    private long getTimeRemainingForScenario() {
         // The idle time is total time minus time elapsed since the current scenario started.
         return max(mTotalTimeoutMs - (System.currentTimeMillis() - mStartTimeMs), 0);
     }
 
+    /** Get the remaining time within the current timeout rule. */
+    private long getTimeRemainingForTimeoutRule() {
+        // The idle time is total time minus time elapsed since the current scenario started.
+        return max(mEnforcedTimeoutMs - (System.currentTimeMillis() - mStartTimeMs), 0);
+    }
+
     @VisibleForTesting
     protected void performIdleBeforeTeardown(long durationMs) {
-        idleWithSystemClockSleep(durationMs);
+        suspensionAwareSleep(durationMs);
     }
 
     @VisibleForTesting
     protected void performIdleBeforeNextScenario(long durationMs) {
         // TODO (b/119386011): Change this idle method to using a sleep test; for now, using the
         // same idling logic as {@link performIdleBeforeTeardown}.
-        idleWithSystemClockSleep(durationMs);
+        suspensionAwareSleep(durationMs);
     }
 
-    private void idleWithSystemClockSleep(long durationMs) {
-        if (durationMs <= 0) {
-            return;
+    /**
+     * Idle with a sleep that will be accurate despite the device entering power-saving modes (e.g.
+     * suspend, Doze).
+     */
+    @VisibleForTesting
+    static void suspensionAwareSleep(long durationMs) {
+        // Call the testable version of this method with arguments for the intended sleep behavior.
+        suspensionAwareSleep(durationMs, durationMs);
+    }
+
+    /**
+     * A testable version of suspension-aware sleep.
+     *
+     * <p>This method sets up a {@link CountDownLatch} that waits for a wake-up event, which is
+     * triggered by an {@link AlarmManager} alarm set to fire after the sleep duration. When the
+     * device enters suspend mode, the {@link CountDownLatch} await no longer works as intended and
+     * in effect waits for much longer than expected, in which case the alarm fires and ends the
+     * sleep behavior, ensuring that the device still sleeps for the expected amount of time. If the
+     * device does not enter suspend mode, this method only waits for the {@link CountDownLatch} and
+     * functions similarly to {@code Thread.sleep()}.
+     *
+     * <p>This testable method enables tests to set a longer await timeout on the {@link
+     * CountDownLatch}, enabling that the alarm fires before the {@code CountDownLatch.await()}
+     * timeout is reached, thus simulating the case where the device goes into suspend mode.
+     */
+    @VisibleForTesting
+    static void suspensionAwareSleep(long durationMs, long countDownLatchTimeoutMs) {
+        Log.i(LOG_TAG, String.format("Starting suspension-aware sleep for %d ms", durationMs));
+
+        Context context = InstrumentationRegistry.getContext();
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+        String wakeUpAction =
+                String.format(
+                        "%s.%d.%d.ScheduledScenarioRunnerSleepWakeUp"
+                                .format(
+                                        context.getPackageName(),
+                                        Process.myPid(),
+                                        Thread.currentThread().getId()));
+
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        IntentFilter wakeUpActionFilter = new IntentFilter(wakeUpAction);
+        BroadcastReceiver receiver =
+                new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        Log.i(
+                                LOG_TAG,
+                                "Suspension-aware sleep ended by receiving the wake-up intent.");
+                        countDownLatch.countDown();
+                    }
+                };
+        context.registerReceiver(receiver, wakeUpActionFilter);
+        PendingIntent pendingIntent =
+                PendingIntent.getBroadcast(
+                        context, 0, new Intent(wakeUpAction), PendingIntent.FLAG_UPDATE_CURRENT);
+
+        alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + durationMs, pendingIntent);
+
+        try {
+            countDownLatch.await(countDownLatchTimeoutMs, TimeUnit.MILLISECONDS);
+            Log.i(LOG_TAG, "Suspension-aware sleep ended.");
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            context.unregisterReceiver(receiver);
         }
-        SystemClock.sleep(durationMs);
     }
 }

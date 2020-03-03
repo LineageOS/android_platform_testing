@@ -79,6 +79,17 @@ public class Profile extends RunListener {
         }
     }
 
+    // Comparator for sorting indexed CUJs.
+    private static class ScenarioIndexedComparator implements Comparator<Scenario> {
+        public int compare(Scenario s1, Scenario s2) {
+            if (!(s1.hasIndex() && s2.hasIndex())) {
+                throw new IllegalArgumentException(
+                        "Scenarios in indexed profiles must have indexes.");
+            }
+            return Integer.compare(s1.getIndex(), s2.getIndex());
+        }
+    }
+
     public Profile(Bundle args) {
         super();
         // Set the timestamp parser to UTC to get test timstamps as "time elapsed since zero".
@@ -105,6 +116,8 @@ public class Profile extends RunListener {
                 throw new IllegalArgumentException(
                         "Cannot parse the timestamp of the first scenario.", e);
             }
+        } else if (mConfiguration.getSchedule().equals(Schedule.INDEXED)) {
+            Collections.sort(mOrderedScenariosList, new ScenarioIndexedComparator());
         } else {
             throw new UnsupportedOperationException(
                     "Only scheduled profiles are currently supported.");

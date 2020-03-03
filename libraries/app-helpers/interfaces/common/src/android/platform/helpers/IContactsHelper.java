@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,19 @@ public interface IContactsHelper extends IAppHelper {
      * @param contact The contact to search.
      */
     public default void searchForContact(String contact) {
+        throw new UnsupportedOperationException("Not yet implemented.");
+    }
+
+    /**
+     * Setup expectation: Contacts is open
+     *
+     * <p>Clicks search field and inputs contact to search. Provide alternative ways to input
+     * contact.
+     *
+     * @param contact The contact to search.
+     * @param useKeyboard Use KeyEvent to input contact if true, use UiObject2 setText otherwise.
+     */
+    public default void searchForContact(String contact, boolean useKeyboard) {
         throw new UnsupportedOperationException("Not yet implemented.");
     }
 
