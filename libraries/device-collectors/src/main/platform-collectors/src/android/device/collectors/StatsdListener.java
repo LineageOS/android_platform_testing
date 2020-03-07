@@ -21,7 +21,9 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.util.Log;
+import android.util.StatsLog;
 import androidx.annotation.VisibleForTesting;
 import androidx.test.InstrumentationRegistry;
 
@@ -43,6 +45,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -72,6 +75,12 @@ public class StatsdListener extends BaseMetricListener {
     // Common prefix for the metric file.
     static final String REPORT_FILENAME_PREFIX = "statsd-";
 
+    // Labels used to signify test events to statsd with the AppBreadcrumbReported atom.
+    static final int RUN_EVENT_LABEL = 7;
+    static final int TEST_EVENT_LABEL = 11;
+    // A short delay after pushing the AppBreadcrumbReported event so that metrics can be dumped.
+    static final long METRIC_PULL_DELAY = TimeUnit.SECONDS.toMillis(1);
+
     // Configs used for the test run and each test, respectively.
     private Map<String, StatsdConfig> mRunLevelConfigs = new HashMap<String, StatsdConfig>();
     private Map<String, StatsdConfig> mTestLevelConfigs = new HashMap<String, StatsdConfig>();
@@ -95,6 +104,10 @@ public class StatsdListener extends BaseMetricListener {
         mTestLevelConfigs.putAll(getConfigsFromOption(OPTION_CONFIGS_TEST_LEVEL));
 
         mRunLevelConfigIds = registerConfigsWithStatsManager(mRunLevelConfigs);
+
+        if (!logStart(RUN_EVENT_LABEL)) {
+            Log.w(LOG_TAG, "Failed to log a test run start event. Metrics might be incomplete.");
+        }
     }
 
     /**
@@ -104,6 +117,11 @@ public class StatsdListener extends BaseMetricListener {
      */
     @Override
     public void onTestRunEnd(DataRecord runData, Result result) {
+        if (!logStop(RUN_EVENT_LABEL)) {
+            Log.w(LOG_TAG, "Failed to log a test run end event. Metrics might be incomplete.");
+        }
+        SystemClock.sleep(METRIC_PULL_DELAY);
+
         Map<String, File> configReports =
                 pullReportsAndRemoveConfigs(
                         mRunLevelConfigIds, Paths.get(REPORT_PATH_ROOT, REPORT_PATH_RUN_LEVEL), "");
@@ -118,6 +136,10 @@ public class StatsdListener extends BaseMetricListener {
         mTestIterations.computeIfPresent(description.getDisplayName(), (name, count) -> count + 1);
         mTestIterations.computeIfAbsent(description.getDisplayName(), name -> 1);
         mTestLevelConfigIds = registerConfigsWithStatsManager(mTestLevelConfigs);
+
+        if (!logStart(TEST_EVENT_LABEL)) {
+            Log.w(LOG_TAG, "Failed to log a test start event. Metrics might be incomplete.");
+        }
     }
 
     /**
@@ -127,6 +149,11 @@ public class StatsdListener extends BaseMetricListener {
      */
     @Override
     public void onTestEnd(DataRecord testData, Description description) {
+        if (!logStop(TEST_EVENT_LABEL)) {
+            Log.w(LOG_TAG, "Failed to log a test end event. Metrics might be incomplete.");
+        }
+        SystemClock.sleep(METRIC_PULL_DELAY);
+
         Map<String, File> configReports =
                 pullReportsAndRemoveConfigs(
                         mTestLevelConfigIds,
@@ -410,5 +437,25 @@ public class StatsdListener extends BaseMetricListener {
                                 Function.identity(),
                                 configName ->
                                         parseConfigFromName(manager, optionName, configName)));
+    }
+
+    /**
+     * Log a "start" AppBreadcrumbReported event to statsd. Wraps a static method for testing.
+     *
+     * @hide
+     */
+    @VisibleForTesting
+    protected boolean logStart(int label) {
+        return StatsLog.logStart(label);
+    }
+
+    /**
+     * Log a "stop" AppBreadcrumbReported event to statsd. Wraps a static method for testing.
+     *
+     * @hide
+     */
+    @VisibleForTesting
+    protected boolean logStop(int label) {
+        return StatsLog.logStop(label);
     }
 }

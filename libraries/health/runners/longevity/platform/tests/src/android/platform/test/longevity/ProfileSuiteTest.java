@@ -30,7 +30,8 @@ import android.content.Context;
 import android.host.test.longevity.listener.TimeoutTerminator;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.platform.test.longevity.samples.testing.SampleProfileSuite;
+import android.platform.test.longevity.samples.testing.SampleBasicProfileSuite;
+import android.platform.test.longevity.samples.testing.SampleTimedProfileSuite;
 import android.platform.test.scenario.annotation.Scenario;
 
 import org.junit.Assert;
@@ -143,19 +144,21 @@ public class ProfileSuiteTest {
     @RunWith(Parameterized.class)
     public static class NotSupportedRunner extends BasicScenario {}
 
-    /** Test that a profile's scheduling is followed. */
+    /** Test that a timestamped profile's scheduling is followed. */
     @Test
-    public void testScheduling_respectsSchedule() throws InitializationError {
+    public void testTimestampScheduling_respectsSchedule() throws InitializationError {
         // TODO(harrytczhang@): Find a way to run this without relying on actual idles.
 
         // Arguments with the profile under test.
         Bundle args = new Bundle();
-        args.putString(Profile.PROFILE_OPTION_NAME, "testScheduling_respectsSchedule");
+        args.putString(Profile.PROFILE_OPTION_NAME, "testTimestampScheduling_respectsSchedule");
         // Scenario names from the profile.
         final String firstScenarioName =
-                "android.platform.test.longevity.samples.testing.SampleProfileSuite$LongIdleTest";
+                "android.platform.test.longevity.samples.testing."
+                        + "SampleTimedProfileSuite$LongIdleTest";
         final String secondScenarioName =
-                "android.platform.test.longevity.samples.testing.SampleProfileSuite$PassingTest";
+                "android.platform.test.longevity.samples.testing."
+                        + "SampleTimedProfileSuite$PassingTest";
         // Stores the start time of the test run for the suite. Using AtomicLong here as the time
         // should be initialized when run() is called on the suite, but Java does not want
         // assignment to local varaible in lambda expressions. AtomicLong allows for using the
@@ -164,7 +167,7 @@ public class ProfileSuiteTest {
         ProfileSuite suite =
                 spy(
                         new ProfileSuite(
-                                SampleProfileSuite.class,
+                                SampleTimedProfileSuite.class,
                                 new AllDefaultPossibilitiesBuilder(true),
                                 mInstrumentation,
                                 mContext,
@@ -242,22 +245,22 @@ public class ProfileSuiteTest {
                         argThat(notifier -> notifier.equals(mRunNotifier)));
     }
 
-    /** Test that a profile's last scenario is bounded by the suite timeout. */
+    /** Test that a timestamp profile's last scenario is bounded by the suite timeout. */
     @Test
-    public void testScheduling_respectsSuiteTimeout() throws InitializationError {
+    public void testTimestampScheduling_respectsSuiteTimeout() throws InitializationError {
         long suiteTimeoutMsecs = TimeUnit.SECONDS.toMillis(10);
         ArgumentCaptor<Failure> failureCaptor = ArgumentCaptor.forClass(Failure.class);
 
         // Arguments with the profile under test and suite timeout.
         Bundle args = new Bundle();
-        args.putString(Profile.PROFILE_OPTION_NAME, "testScheduling_respectsSuiteTimeout");
+        args.putString(Profile.PROFILE_OPTION_NAME, "testTimestampScheduling_respectsSuiteTimeout");
         args.putString(TimeoutTerminator.OPTION, String.valueOf(suiteTimeoutMsecs));
 
         // Construct and run the profile suite.
         ProfileSuite suite =
                 spy(
                         new ProfileSuite(
-                                SampleProfileSuite.class,
+                                SampleTimedProfileSuite.class,
                                 new AllDefaultPossibilitiesBuilder(true),
                                 mInstrumentation,
                                 mContext,
@@ -288,10 +291,70 @@ public class ProfileSuiteTest {
                                     long expectedTimeout =
                                             suiteTimeoutMsecs
                                                     - TimeUnit.SECONDS.toMillis(4)
-                                                    - ScheduledScenarioRunner.ENDTIME_LEEWAY_MS;
+                                                    - ScheduledScenarioRunner.TEARDOWN_LEEWAY_MS;
                                     return abs(exceptionTimeout - expectedTimeout)
                                             <= SCHEDULE_LEEWAY_MS;
                                 });
         Assert.assertTrue(correctTestTimedOutExceptionFired);
+    }
+
+    /** Test that an indexed profile's scheduling is followed. */
+    @Test
+    public void testIndexedScheduling_respectsSchedule() throws InitializationError {
+        // Arguments with the profile under test.
+        Bundle args = new Bundle();
+        args.putString(Profile.PROFILE_OPTION_NAME, "testIndexedScheduling_respectsSchedule");
+        // Scenario names from the profile.
+        final String firstScenarioName =
+                "android.platform.test.longevity.samples.testing."
+                        + "SampleBasicProfileSuite$PassingTest1";
+        final String secondScenarioName =
+                "android.platform.test.longevity.samples.testing."
+                        + "SampleBasicProfileSuite$PassingTest2";
+        final String thirdScenarioName =
+                "android.platform.test.longevity.samples.testing."
+                        + "SampleBasicProfileSuite$PassingTest1";
+        ProfileSuite suite =
+                spy(
+                        new ProfileSuite(
+                                SampleBasicProfileSuite.class,
+                                new AllDefaultPossibilitiesBuilder(true),
+                                mInstrumentation,
+                                mContext,
+                                args));
+
+        InOrder inOrderVerifier = inOrder(suite);
+
+        suite.run(mRunNotifier);
+        // Verify that the first scenario is started.
+        inOrderVerifier
+                .verify(suite)
+                .runChild(
+                        argThat(
+                                runner ->
+                                        runner.getDescription()
+                                                .getDisplayName()
+                                                .equals(firstScenarioName)),
+                        argThat(notifier -> notifier.equals(mRunNotifier)));
+        // Verify that the second scenario is started.
+        inOrderVerifier
+                .verify(suite)
+                .runChild(
+                        argThat(
+                                runner ->
+                                        runner.getDescription()
+                                                .getDisplayName()
+                                                .equals(secondScenarioName)),
+                        argThat(notifier -> notifier.equals(mRunNotifier)));
+        // Verify that the third scenario is started.
+        inOrderVerifier
+                .verify(suite)
+                .runChild(
+                        argThat(
+                                runner ->
+                                        runner.getDescription()
+                                                .getDisplayName()
+                                                .equals(thirdScenarioName)),
+                        argThat(notifier -> notifier.equals(mRunNotifier)));
     }
 }

@@ -13,15 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package android.platform.test.longevity;
 
-import org.junit.runner.Runner;
-import org.junit.runners.model.RunnerBuilder;
+package android.platform.helpers;
 
-/** A {@link RunnerBuilder} that uses {@link LongevityClassRunner} to run tests in a suite. */
-public class HealthRunnerBuilder extends RunnerBuilder {
-    @Override
-    public Runner runnerForClass(Class<?> testClass) throws Throwable {
-        return new LongevityClassRunner(testClass);
-    }
+public interface IWazeHelper extends IAppHelper {
+    // Inherit methods from super class.
 }

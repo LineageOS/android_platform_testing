@@ -21,17 +21,17 @@ option java_multiple_files = true;
 
 message Configuration {
     // Schedule used to run the profile.
-    // TODO(b/122323704): Implement ordered profile.
     enum Schedule {
         TIMESTAMPED = 1;
+        INDEXED = 2;
     }
     optional Schedule schedule = 1 [default = TIMESTAMPED];
 
     // Information for each scenario.
     message Scenario {
         oneof schedule {
-            // Timestamp to run the scenario in HH:MM:SS.
-            string at = 1;
+            string at = 1; // A timestamp (HH:MM:SS) for when to run the scenario.
+            int32 index = 2; // An index for the relative order of the scenario.
         }
         // Reference to the CUJ (<package>.<class>).
         optional string journey = 3;

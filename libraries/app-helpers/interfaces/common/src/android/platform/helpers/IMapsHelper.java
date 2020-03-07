@@ -16,6 +16,8 @@
 
 package android.platform.helpers;
 
+import android.support.test.uiautomator.Direction;
+
 public interface IMapsHelper extends IAppHelper {
     /**
      * Setup expectation: On the standard Map screen in any setup.
@@ -99,6 +101,24 @@ public interface IMapsHelper extends IAppHelper {
      * selects the results.
      */
     public default void startSearch() {
+        throw new UnsupportedOperationException("Not yet implemented.");
+    }
+
+    /**
+     * Setup expectation: Destination is selected.
+     *
+     * <p>Go to the street view screen for the selected destination.
+     */
+    public default void openStreetView() {
+        throw new UnsupportedOperationException("Not yet implemented.");
+    }
+
+    /**
+     * Setup expectation: On the street view screen.
+     *
+     * <p>Swipe the street view screen.
+     */
+    public default void swipeStreetView(Direction direction) {
         throw new UnsupportedOperationException("Not yet implemented.");
     }
 }

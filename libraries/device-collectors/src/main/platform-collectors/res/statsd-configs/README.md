@@ -9,11 +9,14 @@ A config tells statsd what metrics to collect from the device during a test. For
 
 ## Checking in a config
 
-To check in a config, follow these steps:
+To check in config(s) for a new set of metrics, follow these steps:
 
-1. Create a directory under this directory for the new config (e.g. `app-start`).
-2. Put the new config in the subdirectory using the directory name + `.pb` extension.
-3. Write a README file explaining what the config does and put it under the new subdirectory.
+1. Create a directory under this directory for the new metrics (e.g. `app-start`).
+2. Put the new config(s) in the subdirectory using the directory name and optionally with additional
+suffixes if there are multiple configs related to the overarching metrics, with `.pb` extension.
+This ensures that each config has a unique name.
+3. Write a README file explaining what the config(s) in the new subdirectory does and put it under
+the new subdirectory.
 
 # (Internal only) Creating a config
 
