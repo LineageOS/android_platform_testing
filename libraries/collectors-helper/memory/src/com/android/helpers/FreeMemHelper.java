@@ -50,6 +50,7 @@ public class FreeMemHelper implements ICollectorHelper<Long> {
     private static final String PROC_MEMINFO = "cat /proc/meminfo";
     private static final String LINE_SEPARATOR = "\\n";
     private static final String MEM_AVAILABLE_PATTERN = "^MemAvailable.*";
+    private static final String MEM_FREE_PATTERN = "^MemFree.*";
     private static final Pattern CACHE_PROC_START_PATTERN = Pattern.compile(".*: Cached$");
     private static final Pattern PID_PATTERN = Pattern.compile("^.*pid(?<processid> [0-9]*).*$");
     private static final String DUMPSYS_PROCESS = "dumpsys meminfo %s";
@@ -57,6 +58,7 @@ public class FreeMemHelper implements ICollectorHelper<Long> {
     private static final String PROCESS_ID = "processid";
     public static final String MEM_AVAILABLE_CACHE_PROC_DIRTY = "MemAvailable_CacheProcDirty_bytes";
     public static final String PROC_MEMINFO_MEM_AVAILABLE= "proc_meminfo_memavailable_bytes";
+    public static final String PROC_MEMINFO_MEM_FREE= "proc_meminfo_memfree_bytes";
     public static final String DUMPSYS_CACHED_PROC_MEMORY= "dumpsys_cached_procs_memory_bytes";
 
     private UiDevice mUiDevice;
@@ -77,26 +79,34 @@ public class FreeMemHelper implements ICollectorHelper<Long> {
         String memInfo;
         try {
             memInfo = mUiDevice.executeShellCommand(PROC_MEMINFO);
+            Log.i(TAG, "cat proc/meminfo :" + memInfo);
         } catch (IOException ioe) {
             Log.e(TAG, "Failed to read " + PROC_MEMINFO + ".", ioe);
             return null;
         }
 
         Pattern memAvailablePattern = Pattern.compile(MEM_AVAILABLE_PATTERN, Pattern.MULTILINE);
+        Pattern memFreePattern = Pattern.compile(MEM_FREE_PATTERN, Pattern.MULTILINE);
         Matcher memAvailableMatcher = memAvailablePattern.matcher(memInfo);
+        Matcher memFreeMatcher = memFreePattern.matcher(memInfo);
 
         String[] memAvailable = null;
-        if (memAvailableMatcher.find()) {
+        String[] memFree = null;
+        if (memAvailableMatcher.find() && memFreeMatcher.find()) {
             memAvailable = memAvailableMatcher.group(0).split(SEPARATOR);
+            memFree = memFreeMatcher.group(0).split(SEPARATOR);
         }
 
-        if (memAvailable == null) {
-            Log.e(TAG, "MemAvailable is null.");
+        if (memAvailable == null || memFree == null) {
+            Log.e(TAG, "MemAvailable or MemFree is null.");
             return null;
         }
         Map<String, Long> results = new HashMap<>();
         long memAvailableProc = Long.parseLong(memAvailable[1]);
         results.put(PROC_MEMINFO_MEM_AVAILABLE, (memAvailableProc * 1024));
+
+        long memFreeProc = Long.parseLong(memFree[1]);
+        results.put(PROC_MEMINFO_MEM_FREE, (memFreeProc * 1024));
 
         long cacheProcDirty = memAvailableProc;
         byte[] dumpsysMemInfoBytes = MetricUtility.executeCommandBlocking(DUMPSYS_MEMIFNO,
@@ -107,7 +117,7 @@ public class FreeMemHelper implements ICollectorHelper<Long> {
         for (String process : cachedProcList) {
             Log.i(TAG, "Cached Process" + process);
             Matcher match;
-            if (((match = matches(PID_PATTERN, process))) != null) {
+            if ((match = matches(PID_PATTERN, process)) != null) {
                 String processId = match.group(PROCESS_ID);
                 String processDumpSysMemInfo = String.format(DUMPSYS_PROCESS, processId);
                 String processInfoStr;
@@ -173,7 +183,7 @@ public class FreeMemHelper implements ICollectorHelper<Long> {
                 Log.i(TAG, currLine);
                 Matcher match;
                 if (!isCacheProcSection
-                        && ((match = matches(CACHE_PROC_START_PATTERN, currLine))) == null) {
+                        && (match = matches(CACHE_PROC_START_PATTERN, currLine)) == null) {
                     // Continue untill the start of cache proc section.
                     continue;
                 } else {

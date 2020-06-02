@@ -54,6 +54,7 @@ public class FreeMemHelperTest {
         assertTrue(freeMemMetrics.containsKey(FreeMemHelper.DUMPSYS_CACHED_PROC_MEMORY));
         assertTrue(freeMemMetrics.get(FreeMemHelper.MEM_AVAILABLE_CACHE_PROC_DIRTY) > 0);
         assertTrue(freeMemMetrics.get(FreeMemHelper.PROC_MEMINFO_MEM_AVAILABLE) > 0);
+        assertTrue(freeMemMetrics.get(FreeMemHelper.PROC_MEMINFO_MEM_FREE) > 0);
         assertTrue(freeMemMetrics.get(FreeMemHelper.DUMPSYS_CACHED_PROC_MEMORY) > 0);
     }
 }

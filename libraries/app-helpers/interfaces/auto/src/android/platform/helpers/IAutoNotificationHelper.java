@@ -16,4 +16,36 @@
 
 package android.platform.helpers;
 
-public interface IAutoNotificationHelper extends INotificationHelper, Scrollable {}
+public interface IAutoNotificationHelper extends INotificationHelper, Scrollable, IAppHelper {
+    /**
+     * Setup expectations: Notification app is open and scrolled to the bottom.
+     *
+     * <p>Tap clear all button if present.
+     */
+    void tapClearAllBtn();
+
+    /**
+     * Setup expectations: A notification is received.
+     *
+     * <p>Check whether notification has been posted.
+     *
+     * @param title of the notification to be checked.
+     */
+    boolean checkNotificationExists(String title);
+
+    /**
+     * Setup expectations: A notification is received.
+     *
+     * <p>Swipe away a received notification.
+     *
+     * @param title of the notification to be swiped.
+     */
+    void removeNotification(String title);
+
+    /**
+     * Setup expectations: None.
+     *
+     * <p>Swipe down from status bar to open notifications.
+     */
+    void openNotification();
+}

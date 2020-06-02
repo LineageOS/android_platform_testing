@@ -65,9 +65,10 @@ public interface IAutoLauncherStrategy extends ILauncherStrategy {
      */
     void openAssistantFacet();
 
-    /**
-     * Open Quick Settings.
-     */
+    /** This method is to open Bluetooth Audio application */
+    void openBluetoothAudioApp();
+
+    /** Open Quick Settings. */
     void openQuickSettings();
 
     /**
@@ -95,4 +96,10 @@ public interface IAutoLauncherStrategy extends ILauncherStrategy {
      * @param appName application to be opened.
      */
     void openApp(String appName);
+
+    /** This method is to open notifications */
+    void openNotifications();
+
+    /** This method is to navigate to device home */
+    void pressHome();
 }

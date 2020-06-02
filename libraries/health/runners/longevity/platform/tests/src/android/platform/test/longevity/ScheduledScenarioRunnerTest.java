@@ -141,8 +141,7 @@ public class ScheduledScenarioRunnerTest {
                                             exception
                                                     .getTimeUnit()
                                                     .toMillis(exception.getTimeout());
-                                    long expectedTimeout =
-                                            timeoutMs - ScheduledScenarioRunner.TEARDOWN_LEEWAY_MS;
+                                    long expectedTimeout = timeoutMs - runner.getTeardownLeeway();
                                     return abs(exceptionTimeout - expectedTimeout)
                                             <= TIMING_LEEWAY_MS;
                                 });
@@ -196,8 +195,7 @@ public class ScheduledScenarioRunnerTest {
         // the leeway set in @{link ScheduledScenarioRunner}.
         verify(runner, times(1))
                 .performIdleBeforeNextScenario(
-                        getWithinMarginMatcher(
-                                ScheduledScenarioRunner.TEARDOWN_LEEWAY_MS, TIMING_LEEWAY_MS));
+                        getWithinMarginMatcher(runner.getTeardownLeeway(), TIMING_LEEWAY_MS));
     }
 
     /** Test that a test set to stay in the app after the test idles after its @Test method. */
@@ -226,8 +224,7 @@ public class ScheduledScenarioRunnerTest {
         verify(runner, times(1))
                 .performIdleBeforeTeardown(
                         getWithinMarginMatcher(
-                                timeoutMs - 2 * ScheduledScenarioRunner.TEARDOWN_LEEWAY_MS,
-                                TIMING_LEEWAY_MS));
+                                timeoutMs - 2 * runner.getTeardownLeeway(), TIMING_LEEWAY_MS));
         // Test should have passed.
         verify(mRunNotifier, never()).fireTestFailure(any(Failure.class));
     }
@@ -387,6 +384,23 @@ public class ScheduledScenarioRunnerTest {
         ScheduledScenarioRunner.suspensionAwareSleep(expectedSleepMillis, expectedSleepMillis * 2);
         long actualSleepDuration = System.currentTimeMillis() - timestampBeforeSleep;
         Assert.assertTrue(abs(actualSleepDuration - expectedSleepMillis) <= TIMING_LEEWAY_MS);
+    }
+
+    /** Test that the teardown leeway override works. */
+    @Test
+    public void testTeardownLeewayOverride() throws Throwable {
+        Bundle args = new Bundle();
+        long leewayOverride = 1000L;
+        args.putString(
+                ScheduledScenarioRunner.TEARDOWN_LEEWAY_OPTION, String.valueOf(leewayOverride));
+        ScheduledScenarioRunner runner =
+                new ScheduledScenarioRunner(
+                        ArgumentTest.class,
+                        Scenario.newBuilder().build(),
+                        TimeUnit.SECONDS.toMillis(6),
+                        false,
+                        args);
+        Assert.assertEquals(leewayOverride, runner.getTeardownLeeway());
     }
 
     /**

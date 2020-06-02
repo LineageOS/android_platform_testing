@@ -291,7 +291,8 @@ public class ProfileSuiteTest {
                                     long expectedTimeout =
                                             suiteTimeoutMsecs
                                                     - TimeUnit.SECONDS.toMillis(4)
-                                                    - ScheduledScenarioRunner.TEARDOWN_LEEWAY_MS;
+                                                    - ScheduledScenarioRunner
+                                                            .TEARDOWN_LEEWAY_DEFAULT;
                                     return abs(exceptionTimeout - expectedTimeout)
                                             <= SCHEDULE_LEEWAY_MS;
                                 });

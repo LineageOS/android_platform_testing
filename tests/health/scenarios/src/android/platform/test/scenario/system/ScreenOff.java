@@ -57,8 +57,11 @@ public class ScreenOff {
     @After
     public void tearDown() throws RemoteException {
         if (mTurnScreenBackOn.get()) {
-            mDevice.wakeUp();
+            // Wake up the display. wakeUp() is not used here as when the duration is short, the
+            // device might register a double power button press and launch camera.
+            mDevice.pressMenu();
             mDevice.waitForIdle();
+            // Unlock the screen.
             mDevice.pressMenu();
             mDevice.waitForIdle();
         }
