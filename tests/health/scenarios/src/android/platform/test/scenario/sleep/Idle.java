@@ -18,8 +18,10 @@ package android.platform.test.scenario.sleep;
 
 import android.os.SystemClock;
 import android.platform.test.option.LongOption;
+import android.platform.test.rule.NaturalOrientationRule;
 import android.platform.test.scenario.annotation.Scenario;
 
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,6 +33,9 @@ import org.junit.runners.JUnit4;
 @Scenario
 @RunWith(JUnit4.class)
 public class Idle {
+    // Class-level rules
+    @ClassRule public static NaturalOrientationRule orientationRule = new NaturalOrientationRule();
+
     @Rule public final LongOption mDurationMs = new LongOption("durationMs").setDefault(1000L);
 
     @Test

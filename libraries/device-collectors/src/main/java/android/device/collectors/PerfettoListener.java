@@ -46,6 +46,8 @@ public class PerfettoListener extends BaseMetricListener {
     private static final String DEFAULT_WAIT_TIME_MSECS = "3000";
     // Default output folder to store the perfetto output traces.
     private static final String DEFAULT_OUTPUT_ROOT = "/sdcard/test_results";
+    // Argument to indicate the perfetto config file is text proto file.
+    public static final String PERFETTO_CONFIG_TEXT_PROTO = "perfetto_config_text_proto";
     // Argument to get custom config file name for collecting the trace.
     private static final String PERFETTO_CONFIG_FILE_ARG = "perfetto_config_file";
     // Argument to get custom time in millisecs to wait before dumping the trace.
@@ -75,6 +77,7 @@ public class PerfettoListener extends BaseMetricListener {
     // Store the method name and invocation count to create unique file name for each trace.
     private Map<String, Integer> mTestIdInvocationCount = new HashMap<>();
     private boolean mPerfettoStartSuccess = false;
+    private boolean mIsConfigTextProto = false;
     private boolean mIsCollectPerRun;
 
     private PerfettoHelper mPerfettoHelper = new PerfettoHelper();
@@ -123,9 +126,13 @@ public class PerfettoListener extends BaseMetricListener {
         // Whether to collect the for the entire test run or per test.
         mIsCollectPerRun = Boolean.parseBoolean(args.getString(COLLECT_PER_RUN));
 
+        // Whether the config is text proto or not. By default set to false.
+        mIsConfigTextProto = Boolean.parseBoolean(args.getString(PERFETTO_CONFIG_TEXT_PROTO));
+
         // Perfetto config file has to be under /data/misc/perfetto-traces/
         // defaulted to trace_config.pb is perfetto_config_file is not passed.
         mConfigFileName = args.getString(PERFETTO_CONFIG_FILE_ARG, DEFAULT_CONFIG_FILE);
+
 
         // Whether to hold wakelocks on all Prefetto tracing functions. You may want to enable
         // this if your device is not USB connected. This option prevents the device from
@@ -288,16 +295,22 @@ public class PerfettoListener extends BaseMetricListener {
     @VisibleForTesting
     public void acquireWakelock(WakeLock wakelock) {
         if (wakelock != null) {
+            Log.d(getTag(), "wakelock.isHeld: " + wakelock.isHeld());
             Log.d(getTag(), "acquiring wakelock.");
             wakelock.acquire();
+            Log.d(getTag(), "wakelock acquired.");
+            Log.d(getTag(), "wakelock.isHeld: " + wakelock.isHeld());
         }
     }
 
     @VisibleForTesting
     public void releaseWakelock(WakeLock wakelock) {
         if (wakelock != null) {
+            Log.d(getTag(), "wakelock.isHeld: " + wakelock.isHeld());
             Log.d(getTag(), "releasing wakelock.");
             wakelock.release();
+            Log.d(getTag(), "wakelock released.");
+            Log.d(getTag(), "wakelock.isHeld: " + wakelock.isHeld());
         }
     }
 
@@ -313,7 +326,8 @@ public class PerfettoListener extends BaseMetricListener {
      * Start perfetto tracing using the given config file.
      */
     private void startPerfettoTracing() {
-        mPerfettoStartSuccess = mPerfettoHelper.startCollecting(mConfigFileName);
+        mPerfettoStartSuccess = mPerfettoHelper.startCollecting(mConfigFileName,
+                mIsConfigTextProto);
         if (!mPerfettoStartSuccess) {
             Log.e(getTag(), "Perfetto did not start successfully.");
         }

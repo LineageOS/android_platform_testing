@@ -27,6 +27,8 @@ import androidx.test.InstrumentationRegistry;
  * This interface is intended to be inherited by AppHelper classes to add scrolling functionlity.
  */
 public interface Scrollable {
+    int DEFAULT_MARGIN = 5;
+
     /**
      * Setup expectations: None
      *
@@ -89,6 +91,81 @@ public interface Scrollable {
     }
 
     /**
+     * Setup expectations: None.
+     *
+     * <p>This method can be implemented optionally if customized margin is required.
+     *
+     * @return the gesture margin for scrolling.
+     */
+    public default Margin getScrollableMargin() {
+        return new Margin(DEFAULT_MARGIN);
+    }
+
+    /**
+     * Setup expectations: None.
+     *
+     * <p>This method can be implemented optionally if customized margin is required. It sets the
+     * gesture margin returned by <code>getScrollableMargin()</code>.
+     *
+     * @param margin Left, top, right and bottom margins will all be set this this value.
+     */
+    public default void setScrollableMargin(int margin) {
+        throw new UnsupportedOperationException("setScrollableMargin method not implemeneted.");
+    }
+
+    /**
+     * Setup expectations: None.
+     *
+     * <p>This method can be implemented optionally if customized margin is required. It sets the
+     * gesture margin returned by <code>getScrollableMargin()</code>.
+     *
+     * @param left The value to which to set the left margin for scrollling.
+     * @param top The value to which to set the top margin for scrollling.
+     * @param right The value to which to set the right margin for scrollling.
+     * @param bottom The value to which to set the bottom margin for scrollling.
+     */
+    public default void setScrollableMargin(int left, int top, int right, int bottom) {
+        throw new UnsupportedOperationException("setScrollableMargin method not implemeneted.");
+    }
+
+    public class Margin {
+        private int mLeft;
+        private int mTop;
+        private int mRight;
+        private int mBottom;
+
+        public Margin(int margin) {
+            mLeft = margin;
+            mTop = margin;
+            mRight = margin;
+            mBottom = margin;
+        }
+
+        public Margin(int left, int top, int right, int bottom) {
+            mLeft = left;
+            mTop = top;
+            mRight = right;
+            mBottom = bottom;
+        }
+
+        public int getLeft() {
+            return mLeft;
+        }
+
+        public int getTop() {
+            return mTop;
+        }
+
+        public int getRight() {
+            return mRight;
+        }
+
+        public int getBottom() {
+            return mBottom;
+        }
+    }
+
+    /**
      * This is not part of the public interface. For internal use only.
      *
      * <p>Scroll in <code>direction</code> direction by <code>percent</code> percent of the whole
@@ -105,6 +182,12 @@ public interface Scrollable {
             UiObject2 scrollable = device.findObject(By.scrollable(true));
 
             if (scrollable != null) {
+                Margin margin = getScrollableMargin();
+                scrollable.setGestureMargins(
+                        margin.getLeft(),
+                        margin.getTop(),
+                        margin.getRight(),
+                        margin.getBottom());
                 int scrollSpeed = calcScrollSpeed(scrollable, durationMs);
                 scrollable.scroll(direction, percent / 100, scrollSpeed);
             } else {
